@@ -65,6 +65,8 @@ export function Dashboard() {
   const [groupFilter, setGroupFilter] = useState("all");
   const [manualSyncing, setManualSyncing] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const PAGE_STEP = 60;
+  const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
 
   const isLiveSyncing = manualSyncing || pollingSync;
 
@@ -142,6 +144,15 @@ export function Dashboard() {
       }),
     [visibleDevices, search, pinnedIds, filter, sortMode, groupFilter]
   );
+
+  const pagedDevices = useMemo(
+    () => filteredDevices.slice(0, visibleCount),
+    [filteredDevices, visibleCount]
+  );
+
+  useEffect(() => {
+    setVisibleCount(PAGE_STEP);
+  }, [filter, search, groupFilter, sortMode]);
 
   const fleet = useMemo(() => {
     const online = visibleDevices.filter((d) => d.isOnline).length;
@@ -301,11 +312,20 @@ export function Dashboard() {
                 Connected_Devices
               </h2>
               <p className="text-xs font-mono text-muted-foreground mt-1">
-                {filteredDevices.length} OF {fleet.total} NODES INDEXED IN FLEET
+                SHOWING {Math.min(visibleCount, filteredDevices.length)} OF {filteredDevices.length} NODES
               </p>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
+              {visibleCount < filteredDevices.length && (
+                <button
+                  onClick={() => setVisibleCount((c) => c + PAGE_STEP)}
+                  className="action-btn"
+                  title="Render more devices"
+                >
+                  SHOW_MORE ({filteredDevices.length - visibleCount} MORE)
+                </button>
+              )}
               {/* Reload Button */}
               <button
                 onClick={handleManualRefresh}
@@ -459,7 +479,7 @@ export function Dashboard() {
 
               {/* Rows */}
               <div key={`${view}-${filter}`} className="animate-in fade-in slide-in-from-left-4 duration-300">
-              {filteredDevices.map((device) => {
+              {pagedDevices.map((device) => {
                 const batteryNum = getBatteryValue(device.battery);
                 const isCharging = String(device.battery || "").toLowerCase().includes("charg") || String(device.raw?.battery_status || "").toLowerCase().includes("charg");
                 const online = device.isOnline;
@@ -712,7 +732,7 @@ export function Dashboard() {
           ) : (
             /* ── Variation 3 Bento Grid View ── */
             <div key={`grid-${view}-${filter}`} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
-              {filteredDevices.map((device) => {
+              {pagedDevices.map((device) => {
                 const batteryNum = getBatteryValue(device.battery);
                 const isCharging = String(device.battery || "").toLowerCase().includes("charg") || String(device.raw?.battery_status || "").toLowerCase().includes("charg");
                 const online = device.isOnline;
