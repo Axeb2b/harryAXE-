@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-// Lightweight polling hook — plain setInterval + console-visible pause.
-// Mirrors the pure panel's setInterval polling (no react-query, no websockets).
+// Lightweight polling hook with live syncing state indicators.
+// Mirrors the pure panel's setInterval polling with real-time feedback.
 export function usePolling<T>(
   fn: () => Promise<T>,
   intervalMs = 3000,
@@ -10,6 +10,8 @@ export function usePolling<T>(
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<number>(Date.now());
   const fnRef = useRef(fn);
   fnRef.current = fn;
 
@@ -18,16 +20,24 @@ export function usePolling<T>(
     let timer: ReturnType<typeof setInterval> | undefined;
     const tick = async () => {
       if (document.hidden) return; // pause in background
+      if (alive) setIsSyncing(true);
       try {
         const d = await fnRef.current();
         if (alive) {
           setData(d);
           setError(null);
+          setLastSyncTime(Date.now());
         }
       } catch (e: any) {
         if (alive) setError(e?.message || "fetch failed");
       } finally {
-        if (alive) setLoading(false);
+        if (alive) {
+          setLoading(false);
+          // Keep the live pulse active briefly so users visually notice the sync pulse
+          setTimeout(() => {
+            if (alive) setIsSyncing(false);
+          }, 900);
+        }
       }
     };
     tick();
@@ -40,14 +50,19 @@ export function usePolling<T>(
   }, [intervalMs, ...deps]);
 
   const refetch = async () => {
+    setIsSyncing(true);
     try {
       const d = await fnRef.current();
       setData(d);
       setError(null);
+      setLastSyncTime(Date.now());
     } catch (e: any) {
       setError(e?.message || "fetch failed");
+    } finally {
+      setTimeout(() => setIsSyncing(false), 900);
     }
   };
 
-  return { data, error, loading, refetch };
+  return { data, error, loading, isSyncing, lastSyncTime, refetch };
 }
+

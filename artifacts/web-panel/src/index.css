@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -41,106 +40,102 @@
   --color-success: hsl(var(--success));
   --color-success-foreground: hsl(var(--success-foreground));
 
-  --color-cyan: hsl(var(--cyan));
-  --color-amber: hsl(var(--amber));
+  --color-cyan: #00FFCC;
+  --color-amber: #FFB800;
 
-  /* High-contrast dashboard typography: Plus Jakarta Sans body/display, JetBrains Mono for telemetry */
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Plus Jakarta Sans", "Syne", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Variation 3 Typography: DotGothic16 for bold cyber digital headers/stats, Geist for UI, Geist Mono for telemetry */
+  --font-sans: "Geist", "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "DotGothic16", monospace, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Motion tokens — strong custom curves */
+  /* Motion tokens */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 6px);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 }
 
 /* ── Light theme fallback (toggleable) ─────────────────────────────── */
 :root {
   color-scheme: light;
-  --background: 220 24% 96%;
-  --foreground: 220 22% 10%;
+  --background: 220 20% 97%;
+  --foreground: 220 25% 10%;
 
   --card: 0 0% 100%;
-  --card-foreground: 220 22% 10%;
-  --card-border: 220 14% 88%;
+  --card-foreground: 220 25% 10%;
+  --card-border: 220 15% 88%;
   --popover: 0 0% 100%;
-  --popover-foreground: 220 22% 10%;
-  --popover-border: 220 14% 88%;
+  --popover-foreground: 220 25% 10%;
+  --popover-border: 220 15% 88%;
 
-  --border: 220 14% 86%;
-  --input: 220 14% 82%;
-  --ring: 174 70% 45%;
+  --border: 220 15% 86%;
+  --input: 220 15% 84%;
+  --ring: 214 100% 50%;
 
-  --primary: 174 85% 40%;
+  /* Electric Cyber Blue */
+  --primary: 214 100% 50%; /* #0077FF */
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 14% 92%;
-  --secondary-foreground: 220 22% 18%;
+  --secondary: 220 15% 93%;
+  --secondary-foreground: 220 25% 16%;
 
-  --muted: 220 14% 93%;
-  --muted-foreground: 220 10% 40%;
+  --muted: 220 15% 94%;
+  --muted-foreground: 220 10% 44%;
 
-  --accent: 174 85% 40%;
+  --accent: 340 100% 50%; /* #FF0055 */
   --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 72% 51%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 220 22% 10%;
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 100%;
+  --warning: 43 100% 50%; /* #FFB800 */
+  --warning-foreground: 220 25% 10%;
+  --success: 168 100% 50%; /* #00FFCC */
+  --success-foreground: 220 25% 10%;
 
-  --cyan: 174 85% 40%;
-  --amber: 38 92% 50%;
-
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 }
 
-/* ── Dark Cyber theme (default) ────────────────────────────────────── */
+/* ── Variation 3: Deep Cyber Stealth Dark Theme (Default) ───────────── */
 .dark {
   color-scheme: dark;
-  /* Canvas + ink */
-  --background: 220 22% 5%; /* #0B0C10 */
-  --foreground: 174 30% 92%;
+  /* Variation 3 canvas: #070809 */
+  --background: 210 20% 3%; /* #070809 */
+  --foreground: 0 0% 100%; /* #FFFFFF */
 
-  /* Surfaces */
-  --card: 220 16% 10%; /* #181A20 */
-  --card-foreground: 174 30% 92%;
-  --card-border: 220 14% 18%;
-  --popover: 220 16% 10%;
-  --popover-foreground: 174 30% 92%;
-  --popover-border: 220 14% 18%;
+  /* Surfaces: rgba(20, 22, 26, 0.7) */
+  --card: 220 13% 9%; /* #14161A */
+  --card-foreground: 0 0% 100%;
+  --card-border: 0 0% 100% / 0.1;
+  --popover: 220 13% 9%;
+  --popover-foreground: 0 0% 100%;
+  --popover-border: 0 0% 100% / 0.1;
 
-  --border: 220 14% 16%;
-  --input: 220 14% 22%;
-  --ring: 174 90% 55%;
+  --border: 0 0% 100% / 0.1;
+  --input: 0 0% 100% / 0.12;
+  --ring: 214 100% 50%;
 
-  /* Brand — neon cyan */
-  --primary: 174 85% 61%; /* #45F0DF */
-  --primary-foreground: 220 30% 6%;
-  --secondary: 220 14% 14%;
-  --secondary-foreground: 174 30% 88%;
+  /* Brand — Variation 3 #0077FF electric blue */
+  --primary: 214 100% 50%; /* #0077FF */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 13% 14%;
+  --secondary-foreground: 0 0% 90%;
 
-  --muted: 220 14% 12%;
-  --muted-foreground: 220 12% 55%;
+  --muted: 0 0% 100% / 0.04;
+  --muted-foreground: 0 0% 100% / 0.5;
 
-  --accent: 174 90% 55%;
-  --accent-foreground: 220 30% 6%;
+  /* Accent: #FF0055 */
+  --accent: 340 100% 50%;
+  --accent-foreground: 0 0% 100%;
 
   /* Signal colors */
-  --destructive: 0 72% 55%;
+  --destructive: 340 100% 50%;
   --destructive-foreground: 0 0% 100%;
-  --warning: 43 95% 58%;
-  --warning-foreground: 220 30% 8%;
-  --success: 152 75% 46%;
-  --success-foreground: 0 0% 100%;
-
-  --cyan: 174 90% 55%;
-  --amber: 43 95% 58%;
+  --warning: 43 100% 50%; /* #FFB800 */
+  --warning-foreground: 210 20% 3%;
+  --success: 168 100% 50%; /* #00FFCC */
+  --success-foreground: 210 20% 3%;
 }
 
 @layer base {
@@ -153,8 +148,10 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
     min-height: 100dvh;
+    background-color: hsl(var(--background));
+    background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+    background-size: 40px 40px;
   }
-  /* Comfortable mobile tap targets */
   button,
   a,
   [role="button"] {
@@ -163,11 +160,292 @@
   input,
   select,
   textarea {
-    font-size: 16px; /* prevent iOS zoom on focus */
+    font-size: 16px;
   }
 }
 
-/* Hide scrollbar for horizontally scrolling tab strips */
+/* ── Variation 3 specific styles & classes ───────────────────────────── */
+
+.meta {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.page-eyebrow {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  letter-spacing: -0.02em;
+  color: hsl(var(--foreground));
+  line-height: 1.1;
+}
+
+/* Status dots */
+/* Status dots & Telemetry Animations */
+@keyframes telemetry-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 255, 204, 0.7), 0 0 8px #00FFCC;
+  }
+  65% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(0, 255, 204, 0), 0 0 14px #00FFCC;
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 255, 204, 0), 0 0 8px #00FFCC;
+  }
+}
+
+@keyframes telemetry-active-sync {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 119, 255, 0.9), 0 0 10px #0077FF;
+  }
+  50% {
+    transform: scale(1.35);
+    box-shadow: 0 0 0 8px rgba(0, 255, 204, 0.5), 0 0 20px #00FFCC;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 255, 204, 0), 0 0 10px #00FFCC;
+  }
+}
+
+@keyframes ripple-ping {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@keyframes live-glow {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.8)); }
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  position: relative;
+  transition: all 200ms ease;
+}
+.status-dot.online {
+  background: #00FFCC;
+  box-shadow: 0 0 8px #00FFCC;
+  animation: telemetry-pulse 2.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+.status-dot.syncing {
+  background: #00FFCC;
+  animation: telemetry-active-sync 0.8s infinite ease-in-out;
+}
+.status-dot.offline {
+  background: #555555;
+}
+.status-dot.warning {
+  background: #FFB800;
+  box-shadow: 0 0 8px #FFB800;
+  animation: telemetry-pulse 3s infinite ease-in-out;
+}
+
+/* Status indicator container with expanding radar ping ring */
+.status-indicator {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+.status-indicator .ping-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #00FFCC;
+  opacity: 0;
+  pointer-events: none;
+}
+.status-indicator.is-syncing .ping-ring {
+  animation: ripple-ping 1.1s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+/* Tags & ID badges */
+.tag {
+  background: rgba(0, 119, 255, 0.1);
+  color: #0077FF;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.id-badge {
+  background: #111114;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.rupee-alert {
+  color: #FFB800;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Action button style from Variation 3 */
+.action-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: hsl(var(--foreground));
+  padding: 6px 14px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 150ms var(--ease-out);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.action-btn:hover {
+  border-color: #0077FF;
+  color: #0077FF;
+  background: rgba(0, 119, 255, 0.05);
+}
+.action-btn.primary {
+  background: #0077FF;
+  border-color: #0077FF;
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(0, 119, 255, 0.4);
+}
+.action-btn.primary:hover {
+  background: #0066dd;
+}
+
+/* Fleet stat cards */
+.fleet-stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px 18px;
+  border-radius: 6px;
+  transition: all 150ms ease;
+}
+.fleet-stat-card:hover {
+  border-color: rgba(0, 119, 255, 0.4);
+  background: rgba(0, 119, 255, 0.03);
+}
+.fleet-stat-card h4 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.55;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.fleet-stat-card .val {
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  line-height: 1;
+}
+
+/* Card glass */
+.stat-card {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(20, 22, 26, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(20, 22, 26, 0.7);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Device flex row layout */
+.device-card-flex {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.device-row {
+  background: hsl(var(--background));
+  display: grid;
+  grid-template-columns: 60px 2fr 1.5fr 1.5fr 1fr 110px;
+  align-items: center;
+  padding: 14px 20px;
+  padding-left: 10px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 150ms ease;
+}
+.device-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Mobile Touch & Tap States */
+@media (max-width: 640px) {
+  .device-card-flex {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    gap: 12px;
+    overflow: visible;
+  }
+  
+  .fleet-stat-card {
+    padding: 10px 12px;
+  }
+  .fleet-stat-card h4 {
+    font-size: 9px;
+    margin-bottom: 2px;
+  }
+  .fleet-stat-card .val {
+    font-size: 1.45rem;
+  }
+  .action-btn {
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+}
+
+/* Scrollbar */
 .hide-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -176,216 +454,17 @@
   display: none;
 }
 
-/* Soft scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: hsl(var(--background));
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
-}
-
-/* ── Dark-cyber component classes ────────────────────────────────────── */
-
-/* Page heading */
-.page-eyebrow {
-  @apply font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground;
-}
-.page-title {
-  @apply font-display text-2xl font-bold tracking-tight text-foreground;
-}
-
-/* Surface card — glassmorphism */
-.stat-card {
-  @apply rounded-2xl;
-  border: 1px solid hsl(var(--card-border));
-  background: hsl(var(--card) / 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-/* Signal status dots (telemetry) */
-.sig-dot {
-  @apply inline-block w-2 h-2 rounded-full;
-}
-.sig-dot.online {
-  background: hsl(var(--success));
-  box-shadow: 0 0 0 4px hsl(var(--success) / 0.15);
-}
-.sig-dot.offline {
-  background: hsl(var(--muted-foreground));
-}
-.sig-dot.low {
-  background: hsl(var(--warning));
-  box-shadow: 0 0 0 4px hsl(var(--warning) / 0.18);
-}
-.sig-dot.danger {
-  background: hsl(var(--destructive));
-  box-shadow: 0 0 0 4px hsl(var(--destructive) / 0.15);
-}
-
-/* Brand text / mark */
-.brand-gradient {
-  color: hsl(var(--primary));
-  font-weight: 700;
-}
-.brand-mark {
-  @apply flex items-center justify-center bg-gradient-to-br from-primary to-accent text-white;
-}
-
-/* Nav chip (sidebar + bottom nav share this language) */
-.nav-chip {
-  @apply flex items-center gap-2.5 rounded-xl text-sm font-medium transition-colors;
-}
-.nav-chip-active {
-  background: hsl(var(--primary) / 0.12);
-  color: hsl(var(--primary));
-}
-.nav-chip-idle {
-  color: var(--muted-foreground);
-}
-
-/* Legacy aliases kept for compatibility during the restyle pass */
-.glass-card {
-  @apply border-b border-card-border;
-  background: hsl(var(--card) / 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.btn-glow {
-  box-shadow: 0 8px 24px -12px hsl(var(--primary) / 0.6);
-}
-
-/* ── Micro-interactions ─────────────────────────────────────────────── */
-
-/* Cards lift 2px on hover */
-.card-lift {
-  transition:
-    transform 150ms var(--ease-out),
-    box-shadow 150ms var(--ease-out),
-    border-color 150ms var(--ease-out);
-}
-.card-lift:hover {
-  transform: translateY(-2px);
-}
-
-/* Buttons scale(0.98) on press; release animates back */
-button:not(:disabled) {
-  transition: transform 160ms var(--ease-out);
-}
-button:not(:disabled):active {
-  transform: scale(0.98);
-}
-
-/* Tab-pane fade (0.2s opacity on switch) */
-.pane-fade {
-  animation: pane-fade 0.2s var(--ease-out) both;
-}
-@keyframes pane-fade {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Sliding gradient underline for active pills */
-.tab-underline {
-  position: absolute;
-  bottom: -1px;
-  left: 0.75rem;
-  right: 0.75rem;
-  height: 2px;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, #45f0df, #0066ff);
-  box-shadow: 0 0 10px hsl(var(--accent) / 0.7);
-  animation: tab-slide 0.2s ease both;
-}
-@keyframes tab-slide {
-  from {
-    opacity: 0;
-    transform: scaleX(0.4);
-  }
-  to {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-/* ── Device card creative touches ─────────────────────────────────────── */
-@keyframes card-scan {
-  0% {
-    transform: translateY(-110%);
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  85% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(420%);
-    opacity: 0;
-  }
-}
-.card-scan {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 45%;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    hsl(var(--success) / 0.07),
-    transparent
-  );
-  animation: card-scan 4.5s ease-in-out infinite;
-  pointer-events: none;
-}
-.card-scan-slow {
-  animation-duration: 7s;
-}
-
-@keyframes ring-glow {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 2px hsl(var(--success) / 0.5));
-  }
-  50% {
-    filter: drop-shadow(0 0 8px hsl(var(--success) / 0.9));
-  }
-}
-.ring-live {
-  animation: ring-glow 2.4s ease-in-out infinite;
-}
-
-/* ── Reduced motion ─────────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .card-scan,
-  .card-scan-slow,
-  .ring-live,
-  .pane-fade,
-  .tab-underline,
-  .card-lift {
-    animation: none !important;
-    transition: none !important;
-  }
-  .card-lift:hover {
-    transform: none;
-  }
-  .animate-pulse {
-    animation-duration: 3s;
-  }
+  background: rgba(0, 119, 255, 0.5);
 }

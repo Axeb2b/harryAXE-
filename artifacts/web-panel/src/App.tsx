@@ -64,12 +64,23 @@ import { toast } from "@/hooks/use-toast";
 // Error Boundary — shows the actual error instead of a white screen
 class ErrorBoundary extends Component<
   { children: ReactNode },
-  { error: Error | null }
+  { error: Error | null; hasReloaded: boolean }
 > {
-  state = { error: null as Error | null };
+  state = { error: null as Error | null, hasReloaded: false };
 
   static getDerivedStateFromError(error: Error) {
     return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    if (
+      error.message &&
+      error.message.includes("Failed to fetch dynamically imported module") &&
+      !this.state.hasReloaded
+    ) {
+      this.setState({ hasReloaded: true });
+      window.location.reload();
+    }
   }
 
   render() {

