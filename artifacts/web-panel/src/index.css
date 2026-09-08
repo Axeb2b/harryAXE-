@@ -375,6 +375,7 @@
   font-family: var(--font-display);
   font-size: 1.85rem;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Card glass */
@@ -467,4 +468,17 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 119, 255, 0.5);
+}
+
+/* Skill-driven a11y + polish (design-elevation / accessibility-audit) */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
