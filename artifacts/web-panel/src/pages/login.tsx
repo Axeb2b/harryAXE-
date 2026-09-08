@@ -269,10 +269,10 @@ export function Login() {
             <Zap className="w-7 h-7" />
           </div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-            HARRYAXE
+            HARRY AXE
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Enterprise Fleet & Telemetry Control Panel
+            WEBPANEL - Enterprise Fleet & Telemetry Control
           </p>
         </div>
 
@@ -576,6 +576,7 @@ export function Login() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-muted/30 border border-input rounded-xl py-3 pl-10 pr-4 text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                     placeholder="Telegram ID or Email"
+                    autoComplete="username"
                     required
                   />
                 </div>
@@ -601,7 +602,7 @@ export function Login() {
                     onChange={(e) => setPasscode(e.target.value)}
                     className="w-full bg-muted/30 border border-input rounded-xl py-3 pl-10 pr-10 text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                     placeholder="Password or Access Key (or blank for admins)"
-                    autoComplete="off"
+                    autoComplete="current-password"
                   />
                 </div>
               </div>

@@ -172,7 +172,35 @@ function AdminRoute({ component: Component, ...rest }: any) {
   return isAuthenticated && isAdmin ? <Component {...rest} /> : null;
 }
 
+const PANEL_NAME = "HARRY AXE WEBPANEL";
+
+function useDocumentTitle() {
+  const [location] = useLocation();
+  useEffect(() => {
+    const seg = location.split("/")[1] || "";
+    const names: Record<string, string> = {
+      dashboard: "Fleet",
+      "device": "Device",
+      subscriptions: "Access",
+      profile: "System Config",
+      "all-sms": "SMS Hub",
+      firebases: "Firebases",
+      otps: "OTP Monitor",
+      data: "Intel Data",
+      cards: "Card Intel",
+      telegram: "Telegram Bot",
+      "user-search": "User Search",
+      "apk-studio": "APK Studio",
+      tool: "Tool",
+      pam: "Pam",
+    };
+    const label = seg === "" ? "Sign In" : names[seg] ?? "Panel";
+    document.title = `${label} - ${PANEL_NAME}`;
+  }, [location]);
+};
+
 function Router() {
+  useDocumentTitle();
   return (
     <Suspense
       fallback={

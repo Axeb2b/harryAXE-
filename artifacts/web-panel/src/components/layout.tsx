@@ -120,10 +120,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex flex-col">
               <span className="font-display text-xl tracking-tight text-foreground font-bold leading-none">
-                HARRYAXE
+                HARRY AXE
               </span>
               <span className="meta text-[9px] text-muted-foreground tracking-widest mt-0.5 hidden sm:block">
-                FLEET_INTELLIGENCE
+                WEBPANEL
               </span>
             </div>
           </Link>
