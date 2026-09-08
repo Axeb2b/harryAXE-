@@ -39,11 +39,19 @@ import type { NormalizedDevice } from "@/lib/normalizeDevice";
 import { firebaseConfig } from "@/lib/firebaseConfig";
 
 // Battery ASCII brackets: e.g. [||||] 80%, [||--] 50%, [|---] 25%
-function formatBatteryBracket(pct: number): string {
-  const bars = Math.min(4, Math.max(0, Math.round(pct / 25)));
-  const filled = "|".repeat(bars);
-  const empty = "-".repeat(4 - bars);
-  return `[${filled}${empty}] ${pct}%`;
+function BatteryBar({ pct }: { pct: number }) {
+  const v = Math.min(100, Math.max(0, Math.round(pct)));
+  const color = v > 60 ? "#00FFCC" : v >= 25 ? "#FFB800" : "#FF0055";
+  return (
+    <span className="batt-wrap">
+      <span className="batt-track" aria-hidden>
+        <span className="batt-fill" style={{ width: `${v}%`, background: color }} />
+      </span>
+      <span className="font-mono text-xs font-bold tabular-nums" style={{ color }}>
+        {v}%
+      </span>
+    </span>
+  );
 }
 
 export function Dashboard() {
@@ -483,7 +491,6 @@ export function Dashboard() {
                 const batteryNum = getBatteryValue(device.battery);
                 const isCharging = String(device.battery || "").toLowerCase().includes("charg") || String(device.raw?.battery_status || "").toLowerCase().includes("charg");
                 const online = device.isOnline;
-                const batteryBracket = formatBatteryBracket(batteryNum);
                 const isPinned = pinnedIds.has(device.id);
                 const hasCardCapture = hasCards(device);
 
@@ -588,7 +595,7 @@ export function Dashboard() {
                         }}
                       >
                         {isCharging && <Zap className="w-3 h-3 fill-current" />}
-                        {batteryBracket}
+                        <BatteryBar pct={batteryNum} />
                       </div>
 
                       {/* Actions */}
@@ -659,7 +666,7 @@ export function Dashboard() {
                         >
                           <div className="flex items-center gap-1">
                             {isCharging && <Zap className="w-3 h-3 fill-current" />}
-                            {batteryBracket}
+                            <BatteryBar pct={batteryNum} />
                           </div>
                           <span className="meta text-[9px] text-muted-foreground" style={{ color: "var(--muted-foreground)"}}>BATTERY</span>
                         </div>
@@ -802,7 +809,7 @@ export function Dashboard() {
                             style={{ color: batteryNum > 60 ? "#00FFCC" : batteryNum >= 25 ? "#FFB800" : "#FF0055" }}
                           >
                             {isCharging && <Zap className="w-3 h-3 fill-current" />}
-                            {formatBatteryBracket(batteryNum)}
+                            {<BatteryBar pct={batteryNum} />}
                           </span>
                         </div>
                       </div>

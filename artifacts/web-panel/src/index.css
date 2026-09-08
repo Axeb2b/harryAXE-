@@ -482,3 +482,8 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Battery bars (replaces ASCII brackets; pipe glyph missing in display font) */
+.batt-wrap { display: inline-flex; align-items: center; gap: 6px; }
+.batt-track { width: 44px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.12); overflow: hidden; display: inline-block; }
+.batt-fill { display: block; height: 100%; border-radius: 3px; transition: width 300ms ease; }
