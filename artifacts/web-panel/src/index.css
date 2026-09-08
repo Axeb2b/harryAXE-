@@ -487,3 +487,15 @@
 .batt-wrap { display: inline-flex; align-items: center; gap: 6px; }
 .batt-track { width: 44px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.12); overflow: hidden; display: inline-block; }
 .batt-fill { display: block; height: 100%; border-radius: 3px; transition: width 300ms ease; }
+
+/* Mobile: custom .device-row display beats Tailwind's `hidden` utility
+   (unlayered CSS wins over layers), so restore it explicitly below sm. */
+@media (max-width: 639px) {
+  .device-row.table-head,
+  .device-row.group {
+    display: none;
+  }
+  .device-card-flex {
+    overflow-x: visible;
+  }
+}

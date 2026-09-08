@@ -185,6 +185,8 @@ export function Login() {
         setError("Popup was blocked by browser. Please allow popups or use Admin Bypass.");
       } else if (err?.code === "auth/cancelled-popup-request" || err?.code === "auth/popup-closed-by-user") {
         setError("Google Sign-In was closed.");
+      } else if (err?.code === "auth/unauthorized-domain") {
+        setError("Google sign-in is not enabled for this domain yet. Admin: add panel.kimiaxe.com under Firebase Console → Authentication → Settings → Authorized domains (project axexodiweb).");
       } else {
         setError(err.message || "Failed to sign in with Google.");
       }
@@ -507,7 +509,7 @@ export function Login() {
                   <span>Integrated with Firebase Project</span>
                 </div>
                 <p>
-                  Project: <code className="text-foreground">steam-current-477612-h1</code>
+                  Project: <code className="text-foreground">axexodiweb</code>
                 </p>
                 <p>
                   Admin emails (including Harry / admin accounts) are automatically granted full administrative privileges.

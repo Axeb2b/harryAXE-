@@ -476,7 +476,7 @@ export function Dashboard() {
             /* ── Variation 3 Device Rows Table ── */
             <div className="device-card-flex">
               {/* Row Header */}
-              <div className="device-row meta hidden sm:grid" style={{ background: "rgba(255,255,255,0.05)", fontWeight: 800 }}>
+              <div className="device-row meta hidden sm:grid table-head" style={{ background: "rgba(255,255,255,0.05)", fontWeight: 800 }}>
                 <div>STATUS</div>
                 <div style={{ fontSize: "9px" }}>MODEL / UID</div>
                 <div>IDENTITY</div>
