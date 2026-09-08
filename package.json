@@ -1,0 +1,28 @@
+{
+  "name": "parivahan-panel-sync",
+  "version": "0.0.0",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "artifacts/api-server",
+    "artifacts/web-panel",
+    "lib/*",
+    "membership",
+    "scripts"
+  ],
+  "scripts": {
+    "dev": "npm run build --workspace=@workspace/web-panel && npm run dev --workspace=@workspace/api-server",
+    "build": "npm run build --workspace=@workspace/web-panel && npm run build --workspace=@workspace/api-server",
+    "start": "npm run start --workspace=@workspace/api-server",
+    "typecheck": "tsc --build",
+    "lint": "npm run typecheck"
+  },
+  "dependencies": {
+    "@replit/connectors-sdk": "^0.4.3",
+    "firebase": "^12.18.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6",
+    "typescript": "~5.9.3"
+  }
+}

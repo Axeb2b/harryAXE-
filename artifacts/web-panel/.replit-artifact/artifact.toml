@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Admin Web Panel"
+version = "1.0.0"
+id = "artifacts/web-panel"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24920
+
+[services.development]
+run = "pnpm --filter @workspace/web-panel run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/web-panel", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/web-panel/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24920"
+BASE_PATH = "/"

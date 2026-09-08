@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "AxeCodi",
+    "slug": "panel-apk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "panel-apk",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f5f0ff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "ai.axecodi.nexuspanel"
+    },
+    "android": {
+      "package": "ai.axecodi.nexuspanel",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#7c3aed"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

