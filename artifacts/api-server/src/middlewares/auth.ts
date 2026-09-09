@@ -1,6 +1,9 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { fbGet } from "../bot/firebase";
+import jwt from "jsonwebtoken";
 import { isAdminTg } from "../lib/admin";
+
+const JWT_SECRET = process.env["JWT_SECRET"] || "";
 
 /**
  * Session-based bearer auth.
@@ -16,8 +19,21 @@ function parseBearer(
   if (!m) return null;
   const token = m[1];
   const idx = token.indexOf(":");
-  if (idx <= 0 || idx === token.length - 1) return null;
-  return { telegramId: token.slice(0, idx), sessionId: token.slice(idx + 1) };
+  if (idx > 0 && idx < token.length - 1) {
+    return { telegramId: token.slice(0, idx), sessionId: token.slice(idx + 1) };
+  }
+  // Panel gateway JWT (no colon): verify against shared secret
+  if (token.includes(".") && JWT_SECRET) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      if (decoded && typeof decoded.telegramId === "string") {
+        return { telegramId: decoded.telegramId, sessionId: "jwt", jwt: decoded };
+      }
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 export async function requireAuth(
@@ -29,6 +45,21 @@ export async function requireAuth(
   if (!cred) {
     res.status(401).json({ error: "Authentication required." });
     return;
+  }
+
+  const credJwt = (cred as any).jwt;
+  if (credJwt) {
+    (req as any).auth = {
+      telegramId: cred.telegramId,
+      sessionId: "jwt",
+      isAdmin: credJwt.isAdmin === true,
+      session: {
+        device: "Panel JWT",
+        ip: req.ip || "",
+        lastSeen: new Date().toISOString(),
+      },
+    };
+    return next();
   }
 
   // Admin production bypass mode
@@ -94,8 +125,8 @@ export async function requireAdmin(
   next: NextFunction
 ): Promise<void> {
   await requireAuth(req, res, () => {
-    const auth = (req as any).auth as { telegramId: string } | undefined;
-    if (!auth || !isAdminTg(auth.telegramId)) {
+    const auth = (req as any).auth as { telegramId: string; isAdmin?: boolean } | undefined;
+    if (!auth || !(auth.isAdmin === true || isAdminTg(auth.telegramId))) {
       res.status(403).json({ error: "Admin only." });
       return;
     }

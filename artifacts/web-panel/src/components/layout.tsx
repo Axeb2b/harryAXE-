@@ -16,6 +16,8 @@ import {
   Package,
   Flame,
   Settings,
+  Wrench,
+  TerminalSquare,
   MoreHorizontal,
   X,
   Radio,
@@ -62,6 +64,8 @@ const secondaryLinks: NavItem[] = [
   { href: "/firebases", label: "Firebases & Cluster", icon: Flame },
   { href: "/telegram", label: "Telegram Bot", icon: Send },
   { href: "/apk-studio", label: "APK Studio", icon: Package },
+  { href: "/tool", label: "Tool Console", icon: Wrench },
+  { href: "/pam", label: "PAM Control", icon: TerminalSquare, adminOnly: true },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
