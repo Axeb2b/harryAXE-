@@ -503,7 +503,8 @@
 /* Sticky table header for long device scans */
 .device-row.table-head {
   position: sticky;
-  top: 100px;
+  top: 83px;
   z-index: 20;
-  background: #14161A;
+  background: #14161A !important;
+  box-shadow: 0 8px 16px -8px rgba(0,0,0,0.8);
 }
