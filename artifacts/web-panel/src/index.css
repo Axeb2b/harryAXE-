@@ -499,3 +499,10 @@
     overflow-x: visible;
   }
 }
+
+/* Sticky table header for long device scans */
+.device-row.table-head {
+  position: sticky;
+  top: 60px;
+  z-index: 20;
+}
