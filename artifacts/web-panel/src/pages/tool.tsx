@@ -127,7 +127,7 @@ export function Tool() {
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Aadhaar Tool</h1>
+            <h1 className="text-2xl font-bold">ADHAR</h1>
             <p className="text-sm text-muted-foreground">
               tool.py — honeybadger proxy
             </p>

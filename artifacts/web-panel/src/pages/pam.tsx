@@ -84,9 +84,9 @@ export function Pam() {
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">PAM Control</h1>
+            <h1 className="text-2xl font-bold">PAN FETCH</h1>
             <p className="text-sm text-muted-foreground">
-              pam.py — Telegram + Selenium fleet (admin)
+              PAN lookup & fetch console (admin)
             </p>
           </div>
           <Badge variant="secondary" className="ml-auto">

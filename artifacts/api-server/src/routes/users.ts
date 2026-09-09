@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { isAdminTg } from "../lib/admin";
+import { isAdminTg, ADMIN_TG_IDS } from "../lib/admin";
 import { requireAuth, requireAdmin } from "../middlewares/auth";
 import rateLimit from "express-rate-limit";
-import { fbGet, fbUpdate, fbSet } from "../bot/firebase";
+import { fbGet, fbUpdate, fbSet, fbDelete } from "../bot/firebase";
 import { isSubscriptionActive } from "../bot/firebase";
 import {
   getAllSubscriptions,
@@ -556,6 +556,120 @@ router.delete("/users/:id", requireAdmin, async (req, res) => {
     res.json({ success: true, deleted: id });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete user" });
+  }
+});
+
+
+// ── POST /api/device/register — register a new client in Firebase ──────
+router.post("/device/register", requireAuth, writeLimiter, async (req, res) => {
+  try {
+    const auth = (req as any).auth as { telegramId: string; isAdmin?: boolean };
+    const me = String(auth.telegramId);
+    const admin = auth.isAdmin === true || isAdminTg(me);
+    const { deviceId, modelName, ownerTelegramId, mobNo, alias, group } = (req.body ?? {}) as {
+      deviceId?: string; modelName?: string; ownerTelegramId?: string | number;
+      mobNo?: string; alias?: string; group?: string;
+    };
+    const id = deviceId ? String(deviceId).trim() : "dev-" + Date.now().toString(36);
+    if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) {
+      return res.status(400).json({ error: "deviceId must be 8-64 chars [A-Za-z0-9_-]" });
+    }
+    const owner = ownerTelegramId ? String(ownerTelegramId).trim() : me;
+    if (!/^\d{3,20}$/.test(owner)) {
+      return res.status(400).json({ error: "ownerTelegramId must be a numeric Telegram ID" });
+    }
+    if (owner !== me && !admin) {
+      return res.status(403).json({ error: "Only admins can register devices for other owners" });
+    }
+    const existing = await fbGet(`clients/${id}`);
+    if (existing) {
+      return res.status(409).json({ error: "Device already registered" });
+    }
+    const now = new Date().toISOString();
+    const record = {
+      deviceId: id,
+      modelName: String(modelName || "").slice(0, 100),
+      ownerTelegramId: owner,
+      mobNo: String(mobNo || "").slice(0, 20),
+      alias: String(alias || "").slice(0, 60),
+      group: String(group || "").slice(0, 60),
+      status: "pending",
+      joined: now,
+      registeredBy: me,
+      registeredAt: now,
+      source: "panel",
+    };
+    await fbSet(`clients/${id}`, record);
+    try {
+      const { getBot } = await import("../bot/index");
+      const bot = getBot();
+      if (bot) {
+        const msg =
+          `\uD83D\uDCF2 *New device registered*\n\n` +
+          `\u2022 ID: \`${id}\`\n` +
+          `\u2022 Model: ${record.modelName || "-"}\n` +
+          `\u2022 Owner: \`${owner}\`\n` +
+          `\u2022 By: \`${me}\``;
+        for (const adm of ADMIN_TG_IDS) {
+          await bot.telegram.sendMessage(adm, msg, { parse_mode: "Markdown" }).catch(() => {});
+        }
+      }
+    } catch {}
+    res.status(201).json({ success: true, device: record });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to register device" });
+  }
+});
+
+// ── PATCH /api/device/:id — update registration fields ──────────────────
+router.patch("/device/:id", requireAuth, writeLimiter, async (req, res) => {
+  try {
+    const auth = (req as any).auth as { telegramId: string; isAdmin?: boolean };
+    const me = String(auth.telegramId);
+    const admin = auth.isAdmin === true || isAdminTg(me);
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const raw = (await fbGet(`clients/${id}`)) || null;
+    if (!raw || typeof raw !== "object") {
+      return res.status(404).json({ error: "Device not found" });
+    }
+    if (!canSeeDevice(raw.ownerTelegramId, me, admin)) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    const { modelName, mobNo, alias, group, status } = (req.body ?? {}) as Record<string, unknown>;
+    const patch: Record<string, unknown> = {};
+    if (modelName !== undefined) patch.modelName = String(modelName).slice(0, 100);
+    if (mobNo !== undefined) patch.mobNo = String(mobNo).slice(0, 20);
+    if (alias !== undefined) patch.alias = String(alias).slice(0, 60);
+    if (group !== undefined) patch.group = String(group).slice(0, 60);
+    if (status !== undefined) {
+      if (!["pending", "active", "disabled"].includes(String(status))) {
+        return res.status(400).json({ error: "status must be pending|active|disabled" });
+      }
+      patch.status = String(status);
+    }
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ error: "No updatable fields provided" });
+    }
+    await fbUpdate(`clients/${id}`, patch);
+    const updated = await fbGet(`clients/${id}`);
+    res.json({ success: true, device: updated });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update device" });
+  }
+});
+
+// ── DELETE /api/device/:id — remove a client (admin) ────────────────────
+router.delete("/device/:id", requireAdmin, writeLimiter, async (req, res) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const raw = (await fbGet(`clients/${id}`)) || null;
+    if (!raw || typeof raw !== "object") {
+      return res.status(404).json({ error: "Device not found" });
+    }
+    await fbDelete(`clients/${id}`);
+    res.json({ success: true, deleted: id });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete device" });
   }
 });
 
