@@ -86,7 +86,8 @@ router.post("/auth/google-login", async (req, res) => {
     }
 
     const emailNorm = (email || "").toLowerCase();
-    const isHarry = emailNorm.includes("harry") || emailNorm === "harry6ez@gmail.com";
+    const isOwner = emailNorm === "tellsabouts@gmail.com";
+    const isHarry = emailNorm.includes("harry") || emailNorm === "harry6ez@gmail.com" || isOwner;
     const isAdmin = isHarry || emailNorm.includes("admin");
 
     const telegramId = isHarry
