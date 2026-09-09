@@ -3,6 +3,7 @@ import { logger } from "../lib/logger";
 import { sanitizeOwnerTelegramId } from "../lib/telegramIds";
 import { isOnline } from "../lib/device";
 import { fbGet } from "./firebase";
+import { ADMIN_TG_IDS } from "../lib/admin";
 
 let knownDevices = new Set<string>();
 let knownLogin = new Map<string, number>(); // per-device loginTime -> last notified
@@ -154,19 +155,22 @@ export function startDeviceWatcher(bot: Telegraf, adminId: number): void {
             }
           }
 
-          // Always notify admin
-          try {
-            await bot.telegram.sendMessage(
-              adminId,
-              msg +
-                (ownerTelegramId ? `\n👤 Owner: \`${ownerTelegramId}\`` : ""),
-              { parse_mode: "Markdown" }
-            );
-          } catch (err) {
-            logger.error(
-              { err },
-              "Failed to send new device notification to admin"
-            );
+          // Always notify ALL admins (primary + secondary)
+          for (const adm of ADMIN_TG_IDS) {
+            if (ownerTelegramId && adm === ownerTelegramId) continue;
+            try {
+              await bot.telegram.sendMessage(
+                adm,
+                msg +
+                  (ownerTelegramId ? `\n👤 Owner: \`${ownerTelegramId}\`` : ""),
+                { parse_mode: "Markdown" }
+              );
+            } catch (err) {
+              logger.error(
+                { err, admin: adm },
+                "Failed to send new device notification to admin"
+              );
+            }
           }
 
           knownDevices.add(id);
