@@ -201,9 +201,9 @@ let statsCache: {
   devicesWithSms: number;
   lastUpdated: number;
 } = {
-  totalMessages: 194886,
+  totalMessages: 0,
   deviceCounts: {},
-  devicesWithSms: 78,
+  devicesWithSms: 0,
   lastUpdated: 0,
 };
 
@@ -270,7 +270,7 @@ function instanceStats(raw: any): Record<string, number> {
       cards++;
   }
   const messages = (raw.messages || {}) as Record<string, any>;
-  let smsCount = statsCache.totalMessages || 194886;
+  let smsCount = statsCache.totalMessages || 0;
   const firstMsg = Object.values(messages)[0];
   if (firstMsg !== true && typeof messages === "object" && Object.keys(messages).length > 0) {
     let localCount = 0;
@@ -330,7 +330,7 @@ router.get("/firebases/stats", async (_req, res) => {
   } catch (err: any) {
     return res.json({
       success: true,
-      totalMessages: statsCache.totalMessages || 194886,
+      totalMessages: statsCache.totalMessages || 0,
       devicesWithSms: statsCache.devicesWithSms || 78,
       deviceCounts: statsCache.deviceCounts || {},
       lastUpdated: statsCache.lastUpdated,
@@ -371,7 +371,7 @@ router.get("/data/messages", requireAuth, async (req, res) => {
       success: true,
       messages: result,
       totalDevicesWithSms: devKeys.length,
-      totalMessages: statsCache.totalMessages || 194886,
+      totalMessages: statsCache.totalMessages || 0,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err?.message || "Failed to fetch messages" });

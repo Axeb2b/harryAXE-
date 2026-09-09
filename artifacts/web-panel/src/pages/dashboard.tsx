@@ -171,7 +171,7 @@ export function Dashboard() {
     const groups = [
       ...new Set(visibleDevices.map((d) => d.group).filter(Boolean)),
     ] as string[];
-    const totalSms = boot?.totalMessages || 194886;
+    const totalSms = boot?.totalMessages || 0;
 
     return {
       total: visibleDevices.length,

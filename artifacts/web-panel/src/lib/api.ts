@@ -277,7 +277,7 @@ export async function getBootstrap(): Promise<Bootstrap> {
   const list = deduplicateAndFoldDevices(clients || {}, msgsShallow || {});
   const now = new Date().toDateString();
   const deviceCounts = statsRes?.deviceCounts || {};
-  const totalMessages = statsRes?.totalMessages || 194886;
+  const totalMessages = statsRes?.totalMessages || 0;
 
   for (const d of list) {
     if (!isAdmin && !canSee(d.ownerTelegramId, telegramId)) continue;
