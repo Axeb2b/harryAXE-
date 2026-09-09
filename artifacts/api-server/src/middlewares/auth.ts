@@ -13,7 +13,7 @@ const JWT_SECRET = process.env["JWT_SECRET"] || "";
  */
 function parseBearer(
   authHeader?: string
-): { telegramId: string; sessionId: string } | null {
+): { telegramId: string; sessionId: string; jwt?: any } | null {
   if (!authHeader) return null;
   const m = /^Bearer\s+(.+)$/i.exec(authHeader);
   if (!m) return null;
