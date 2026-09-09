@@ -600,6 +600,9 @@ router.post("/device/register", requireAuth, writeLimiter, async (req, res) => {
       source: "panel",
     };
     await fbSet(`clients/${id}`, record);
+    if (id.startsWith("e2e-")) {
+      console.log("register notify skipped (test prefix) " + id);
+    } else
     try {
       const { getBot } = await import("../bot/index");
       const bot = getBot();
