@@ -62,6 +62,11 @@ export function startDeviceWatcher(bot: Telegraf, adminId: number): void {
             continue;
           }
           lastNotify.set(id, Date.now());
+          // Persist so restarts never re-notify this device.
+          try {
+            const { fbSet } = await import("./firebase");
+            await fbSet(`config/notifiedDevices/${id}`, Date.now());
+          } catch {}
           // New devices often write lastPing first and model/phone a moment later.
           // Wait + re-read so the Telegram alert shows the full details.
           if (!device?.mobNo && !device?.modelName) {

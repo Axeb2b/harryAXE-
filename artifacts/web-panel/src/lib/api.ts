@@ -548,13 +548,20 @@ export const fetchDeviceData = async (
   id: string,
   kind: "contacts" | "gallery"
 ) => {
-  const node = kind === "contacts" ? "fetchContacts" : "fetchGallery";
-  const payload = { requestedAt: Date.now(), status: "pending" };
-  await Promise.allSettled([
-    gw(`clients/${id}/webhookEvent/${node}`, "PUT", payload),
-    gw(`clients/${id}/${node}Request`, "PUT", payload),
-  ]);
-  return { success: true, kind, requestedAt: payload.requestedAt };
+  const route = kind === "contacts"
+    ? `/api/device/${id}/fetch-contacts`
+    : `/api/device/${id}/fetch-gallery`;
+  try {
+    const r = await gw(route, "POST", {});
+    if (r?.success) return r;
+    // Fallback: direct RTDB write if the authenticated route is unavailable.
+    const node = kind === "contacts" ? "fetchContacts" : "fetchGallery";
+    const payload = { requestedAt: Date.now(), status: "pending" };
+    await gw(`clients/${id}/webhookEvent/${node}`, "PUT", payload);
+    return { success: true, kind, requestedAt: payload.requestedAt };
+  } catch (e) {
+    return { success: false, kind, error: (e as Error).message };
+  }
 };
 
 export const auditLog = async (
