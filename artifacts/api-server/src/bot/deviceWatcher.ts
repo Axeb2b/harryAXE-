@@ -124,6 +124,12 @@ export function startDeviceWatcher(bot: Telegraf, adminId: number): void {
             "New device detected"
           );
 
+          if (id.startsWith("e2e-")) {
+            logger.info({ deviceId: id }, "Test device skipped (no notify)");
+            knownDevices.add(id);
+            continue;
+          }
+
           const msg =
             `🆕 *New Device Connected!*\n\n` +
             `📱 Model: \`${model}\`\n` +
