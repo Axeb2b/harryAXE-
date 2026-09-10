@@ -38,38 +38,10 @@ function getFleet() {
   return createFleet({ rtdb: new RtdbAdapter(), notifier });
 }
 
-// POST /api/auth/bypass — instant admin production bypass for inspection and panel access
-router.post("/auth/bypass", async (req, res) => {
-  try {
-    const targetAdmin = req.body?.targetAdmin === "5741539104" ? "5741539104" : "5064888403";
-    const sessionToken = `bypass-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    const username = targetAdmin === "5741539104" ? "HARRY (Admin)" : "Admin";
-
-    try {
-      await fbUpdate(`config/sessions/${targetAdmin}`, {
-        [sessionToken]: {
-          device: "Admin Production Bypass",
-          ip: req.ip || "",
-          loggedInAt: new Date().toISOString(),
-          lastSeen: new Date().toISOString(),
-        },
-      });
-    } catch {
-      // Allow bypass even if network blip occurs
-    }
-
-    return res.json({
-      success: true,
-      accessToken: `${targetAdmin}:${sessionToken}`,
-      refreshToken: `refresh-${sessionToken}`,
-      telegramId: targetAdmin,
-      isAdmin: true,
-      username,
-      expiresIn: 86400 * 30,
-    });
-  } catch {
-    return res.status(500).json({ error: "Server error during bypass." });
-  }
+// POST /api/auth/bypass — REMOVED: was a security hole (unauthenticated admin session minting)
+// Kept route handler but returns 403 to prevent client breakage; admins use /api/auth/login with their telegram ID instead.
+router.post("/auth/bypass", async (_req, res) => {
+  return res.status(403).json({ error: "Bypass endpoint disabled. Use Telegram ID login instead." });
 });
 
 // POST /api/auth/google-login — Google sign-in integration

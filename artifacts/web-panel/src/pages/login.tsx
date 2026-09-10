@@ -26,7 +26,7 @@ const BOT_USERNAME = "admxvxbot";
 type LoginTab = "bypass" | "google" | "credentials" | "telegram";
 
 export function Login() {
-  const [activeTab, setActiveTab] = useState<LoginTab>("bypass");
+  const [activeTab, setActiveTab] = useState<LoginTab>("credentials");
   const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
   const [showPasscode, setShowPasscode] = useState(false);
@@ -34,7 +34,7 @@ export function Login() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isAdmin } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -321,6 +321,7 @@ export function Login() {
                 ? "bg-card text-foreground font-semibold shadow-xs border border-border"
                 : "text-muted-foreground hover:text-foreground"
             }`}
+            style={{ display: isAdmin ? "flex" : "none" }}
           >
             <ShieldCheck className="w-3.5 h-3.5 text-primary" />
             <span>Bypass</span>
@@ -386,8 +387,8 @@ export function Login() {
           id="login-main-card"
           className="bg-card border border-border rounded-2xl p-6 shadow-sm"
         >
-          {/* TAB 1: Admin Production Mode Bypass */}
-          {activeTab === "bypass" && (
+          {/* TAB 1: Admin Production Mode Bypass — admins only */}
+          {isAdmin && activeTab === "bypass" && (
             <div id="section-bypass" className="space-y-4">
               <div className="border-b border-border/80 pb-3.5">
                 <div className="flex items-center gap-2">

@@ -129,7 +129,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span className="meta text-[9px] text-muted-foreground tracking-widest mt-0.5 hidden sm:block">
                 WEBPANEL
               </span>
-              {import.meta.env.PROD && (
+              {isAdmin && import.meta.env.PROD && (
                 <span className="meta text-[8px] font-bold tracking-widest mt-0.5 text-[#00FFCC]">
                   PROD · LIVE
                 </span>

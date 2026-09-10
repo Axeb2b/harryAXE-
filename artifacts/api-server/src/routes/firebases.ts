@@ -323,7 +323,7 @@ router.get("/data/device/:id", requireAuth, async (req, res) => {
 });
 
 /** GET /api/firebases/stats — aggregated real-time database stats across all devices */
-router.get("/firebases/stats", async (_req, res) => {
+router.get("/firebases/stats", requireAuth, async (_req, res) => {
   try {
     const stats = await getOrComputeStats();
     return res.json({ success: true, ...stats });
