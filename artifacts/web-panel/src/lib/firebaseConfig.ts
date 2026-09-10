@@ -9,7 +9,7 @@ export interface FirebaseAppConfig {
 }
 
 export const firebaseConfig: FirebaseAppConfig = {
-  apiKey: "AIzaSyBPnv-sbBjTql8w0PcEOCGkBx41c5TC8bk",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
   authDomain: "axexodiweb.firebaseapp.com",
   databaseURL: "https://axexodiweb-default-rtdb.firebaseio.com",
   projectId: "axexodiweb",

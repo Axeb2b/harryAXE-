@@ -301,7 +301,7 @@ function ShareLinkImporter() {
           body: JSON.stringify({
             name: proj?.[1] || "shared-panel",
             databaseURL: url,
-            apiKey: key || "",
+            apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
           }),
         });
         const json = await res.json();
